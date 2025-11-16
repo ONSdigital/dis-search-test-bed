@@ -1,0 +1,40 @@
+[
+  {
+    "query": "golang best practices",
+    "algorithm": "baseline",
+    "es_query": {
+      "query": {
+        "multi_match": {
+          "query": "golang best practices",
+          "fields": ["title^2", "body"]
+        }
+      }
+    }
+  },
+  {
+    "query": "golang best practices",
+    "algorithm": "weighted_content_type",
+    "es_query": {
+      "query": {
+        "function_score": {
+          "query": {
+            "multi_match": {
+              "query": "golang best practices",
+              "fields": ["title^2", "body"]
+            }
+          },
+          "functions": [
+            {
+              "filter": {"term": {"content_type": "article"}},
+              "weight": 2
+            },
+            {
+              "filter": {"term": {"content_type": "tutorial"}},
+              "weight": 1.5
+            }
+          ]
+        }
+      }
+    }
+  }
+]

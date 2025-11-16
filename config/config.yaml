@@ -1,0 +1,19 @@
+elasticsearch:
+  url: "http://localhost:11200"
+  index: "search_test"
+  timeout: 30s
+
+generation:
+  document_count: 50
+  source_index: "search_test"
+
+output:
+  index_file: "data/test_index.json"
+  results_file: "data/results.csv"
+  diff_file: "data/diff.txt"
+
+diff:
+  show_unchanged: false
+  highlight_new: true
+  show_scores: true
+  max_rank_display: 20
