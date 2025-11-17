@@ -26,6 +26,7 @@ var (
 	queryDiffOutput  string
 	queryLoadResults string
 	queryNoDate      bool
+	queryBothDiffs   bool
 )
 
 var queryCmd = &cobra.Command{
@@ -33,10 +34,10 @@ var queryCmd = &cobra.Command{
 	Short: "Run queries against stored index",
 	Long: `Query loads a stored index into Elasticsearch, runs configured queries,
 and generates results. Can also compare results with previous runs to show
-ranking changes.`,
+ranking changes, or compare queries within the current run.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runQuery(cfgFile, queryIndexFile, queryQueriesFile,
-			queryOutput, queryCompare, queryDiffOutput, queryLoadResults, queryNoDate, verbose)
+			queryOutput, queryCompare, queryDiffOutput, queryLoadResults, queryNoDate, queryBothDiffs, verbose)
 	},
 }
 
@@ -57,10 +58,12 @@ func init() {
 		"Load results from file instead of running queries")
 	queryCmd.Flags().BoolVar(&queryNoDate, "no-date", false,
 		"Don't add timestamp to output filenames")
+	queryCmd.Flags().BoolVar(&queryBothDiffs, "both", true,
+		"Generate both historical and cross-query diffs")
 }
 
 func runQuery(configFile, indexFile, queriesFile, outputCSV, compareFile,
-	diffOutput, loadResults string, noDate, verbose bool) error {
+	diffOutput, loadResults string, noDate, bothDiffs, verbose bool) error {
 
 	cfg, err := config.Load(configFile)
 	if err != nil {
@@ -199,14 +202,17 @@ func runQuery(configFile, indexFile, queriesFile, outputCSV, compareFile,
 	fmt.Printf("✅ Results written to %s\n", csvOutputPath)
 
 	// Generate diff if comparison file provided
-	if compareFile != "" {
+	if compareFile != "" || bothDiffs {
 		var previous []models.QueryResults
-		data, err := os.ReadFile(compareFile)
-		if err != nil {
-			return fmt.Errorf("error reading comparison file: %w", err)
-		}
-		if err := json.Unmarshal(data, &previous); err != nil {
-			return fmt.Errorf("error parsing comparison file: %w", err)
+
+		if compareFile != "" {
+			data, err := os.ReadFile(compareFile)
+			if err != nil {
+				return fmt.Errorf("error reading comparison file: %w", err)
+			}
+			if err := json.Unmarshal(data, &previous); err != nil {
+				return fmt.Errorf("error parsing comparison file: %w", err)
+			}
 		}
 
 		// Generate dated diff filename
@@ -233,7 +239,14 @@ func runQuery(configFile, indexFile, queriesFile, outputCSV, compareFile,
 			MaxRankDisplay: cfg.Diff.MaxRankDisplay,
 		}
 
-		if err := Generate(f, allResults, previous, opts); err != nil {
+		var mode ComparisonMode
+		if bothDiffs {
+			mode = ModeBoth
+		} else if compareFile != "" {
+			mode = ModeHistorical
+		}
+
+		if err := GenerateWithMode(f, allResults, previous, opts, mode); err != nil {
 			return fmt.Errorf("error generating diff: %w", err)
 		}
 
@@ -242,14 +255,18 @@ func runQuery(configFile, indexFile, queriesFile, outputCSV, compareFile,
 
 		// Show summary stats
 		if verbose {
-			fmt.Println("Diff Summary:")
-			for i, curr := range allResults {
-				if i < len(previous) {
-					stats := CalculateStats(curr, previous[i])
-					fmt.Printf("  Query: %s\n", curr.Query)
-					fmt.Printf("    New: %d | Removed: %d | Improved: %d | Worsened: %d\n",
-						stats.NewResults, stats.RemovedCount,
-						stats.ImprovedCount, stats.WorsedCount)
+			if bothDiffs && len(allResults) > 1 {
+				fmt.Println("Generated both historical and cross-query diffs")
+			} else if compareFile != "" {
+				fmt.Println("Diff Summary:")
+				for i, curr := range allResults {
+					if i < len(previous) {
+						stats := CalculateStats(curr, previous[i])
+						fmt.Printf("  Query: %s\n", curr.Query)
+						fmt.Printf("    New: %d | Removed: %d | Improved: %d | Worsened: %d\n",
+							stats.NewResults, stats.RemovedCount,
+							stats.ImprovedCount, stats.WorsedCount)
+					}
 				}
 			}
 		}

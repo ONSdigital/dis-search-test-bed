@@ -2,6 +2,7 @@
   {
     "query": "golang best practices",
     "algorithm": "baseline",
+    "description": "Basic multi-match on title and body",
     "es_query": {
       "query": {
         "multi_match": {
@@ -13,7 +14,8 @@
   },
   {
     "query": "golang best practices",
-    "algorithm": "weighted_content_type",
+    "algorithm": "freshness_boosted",
+    "description": "Boost recent articles, penalize old ones",
     "es_query": {
       "query": {
         "function_score": {
@@ -25,14 +27,17 @@
           },
           "functions": [
             {
-              "filter": {"term": {"content_type": "article"}},
+              "gauss": {
+                "date": {
+                  "origin": "now",
+                  "scale": "90d",
+                  "decay": 0.5
+                }
+              },
               "weight": 2
-            },
-            {
-              "filter": {"term": {"content_type": "tutorial"}},
-              "weight": 1.5
             }
-          ]
+          ],
+          "boost_mode": "multiply"
         }
       }
     }
