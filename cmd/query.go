@@ -33,8 +33,8 @@ var queryCmd = &cobra.Command{
 	Use:   "query",
 	Short: "Run queries against stored index",
 	Long: `Query loads a stored index into Elasticsearch, runs configured queries,
-and generates results. Can also compare results with previous runs to show
-ranking changes, or compare queries within the current run.`,
+and generates results. Can compare with previous runs and/or compare queries
+within the current run.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runQuery(cfgFile, queryIndexFile, queryQueriesFile,
 			queryOutput, queryCompare, queryDiffOutput, queryLoadResults, queryNoDate, queryBothDiffs, verbose)
@@ -83,6 +83,17 @@ func runQuery(configFile, indexFile, queriesFile, outputCSV, compareFile,
 
 	var allResults []models.QueryResults
 	runTimestamp := time.Now()
+	timestampStr := runTimestamp.Format("2006-01-02_15-04-05")
+
+	// Create timestamped results folder
+	resultsFolder := filepath.Join(filepath.Dir(cfg.Output.ResultsFile), "run_"+timestampStr)
+	if err := os.MkdirAll(resultsFolder, 0755); err != nil {
+		return fmt.Errorf("error creating results folder: %w", err)
+	}
+
+	if verbose {
+		fmt.Printf("Results folder: %s\n", resultsFolder)
+	}
 
 	if loadResults != "" {
 		// Load existing results
@@ -101,8 +112,8 @@ func runQuery(configFile, indexFile, queriesFile, outputCSV, compareFile,
 		// Find the most recent index file if specific file not provided
 		actualIndexFile := cfg.Output.IndexFile
 		if indexFile == "" {
-			// Look for timestamped index files
-			pattern := filepath.Join(filepath.Dir(cfg.Output.IndexFile), "test_index_*.json")
+			// Look for timestamped index files in run folders
+			pattern := filepath.Join(filepath.Dir(cfg.Output.IndexFile), "run_*/index.json")
 			matches, err := filepath.Glob(pattern)
 			if err == nil && len(matches) > 0 {
 				// Get the most recent
@@ -182,26 +193,34 @@ func runQuery(configFile, indexFile, queriesFile, outputCSV, compareFile,
 			allResults = append(allResults, results)
 		}
 		fmt.Println()
+
+		// Copy index to results folder
+		indexCopyPath := filepath.Join(resultsFolder, "index.json")
+		indexData, _ := json.MarshalIndent(stored, "", "  ")
+		if err := os.WriteFile(indexCopyPath, indexData, 0644); err != nil {
+			fmt.Printf("⚠️  Warning: Could not copy index to results folder: %s\n", err)
+		} else if verbose {
+			fmt.Printf("Index copied to results folder\n")
+		}
 	}
 
-	// Add timestamp to CSV output unless disabled
-	csvOutputPath := cfg.Output.ResultsFile
-	if !noDate {
-		timestamp := runTimestamp.Format("2006-01-02_15-04-05")
-		dir := filepath.Dir(csvOutputPath)
-		ext := filepath.Ext(csvOutputPath)
-		base := filepath.Base(csvOutputPath)
-		name := base[:len(base)-len(ext)]
-		csvOutputPath = filepath.Join(dir, fmt.Sprintf("%s_%s%s", name, timestamp, ext))
-	}
-
-	// Write CSV
+	// Write CSV (no timestamp in filename)
+	csvOutputPath := filepath.Join(resultsFolder, "results.csv")
 	if err := writeCSV(csvOutputPath, allResults); err != nil {
 		return fmt.Errorf("error writing CSV: %w", err)
 	}
-	fmt.Printf("✅ Results written to %s\n", csvOutputPath)
+	fmt.Printf("✅ Results CSV written to %s\n", csvOutputPath)
 
-	// Generate diff if comparison file provided
+	// Save results JSON (no timestamp in filename)
+	resultsJsonPath := filepath.Join(resultsFolder, "results.json")
+	data, _ := json.MarshalIndent(allResults, "", "  ")
+	if err := os.WriteFile(resultsJsonPath, data, 0644); err != nil {
+		fmt.Printf("⚠️  Warning: Could not save results JSON: %s\n", err)
+	} else {
+		fmt.Printf("💾 Results JSON saved\n")
+	}
+
+	// Generate diff if comparison file provided or both diffs requested
 	if compareFile != "" || bothDiffs {
 		var previous []models.QueryResults
 
@@ -215,18 +234,10 @@ func runQuery(configFile, indexFile, queriesFile, outputCSV, compareFile,
 			}
 		}
 
-		// Generate dated diff filename
-		timestamp := runTimestamp.Format("2006-01-02_15-04-05")
-		diffFile := cfg.Output.DiffFile
+		// Create diff file (no timestamp in filename)
+		diffFilePath := filepath.Join(resultsFolder, "diff.txt")
 
-		// Insert timestamp before extension
-		if idx := strings.LastIndex(diffFile, "."); idx != -1 {
-			diffFile = diffFile[:idx] + "_" + timestamp + diffFile[idx:]
-		} else {
-			diffFile = diffFile + "_" + timestamp
-		}
-
-		f, err := os.Create(diffFile)
+		f, err := os.Create(diffFilePath)
 		if err != nil {
 			return fmt.Errorf("error creating diff file: %w", err)
 		}
@@ -250,7 +261,7 @@ func runQuery(configFile, indexFile, queriesFile, outputCSV, compareFile,
 			return fmt.Errorf("error generating diff: %w", err)
 		}
 
-		fmt.Printf("✅ Diff written to %s\n", diffFile)
+		fmt.Printf("✅ Diff written to %s\n", diffFilePath)
 		fmt.Println()
 
 		// Show summary stats
@@ -272,15 +283,51 @@ func runQuery(configFile, indexFile, queriesFile, outputCSV, compareFile,
 		}
 	}
 
-	// Save current results with timestamp
-	timestamp := runTimestamp.Format("2006-01-02_15-04-05")
-	resultsFile := fmt.Sprintf("data/results_%s.json", timestamp)
-	data, _ := json.MarshalIndent(allResults, "", "  ")
-	if err := os.WriteFile(resultsFile, data, 0644); err != nil {
-		fmt.Printf("⚠️  Warning: Could not save results: %s\n", err)
-	} else {
-		fmt.Printf("💾 Results saved to %s for future comparison\n", resultsFile)
+	// Create a summary/metadata file in the results folder
+	metadataPath := filepath.Join(resultsFolder, "metadata.txt")
+	metadataContent := fmt.Sprintf(`Search Test Bed - Run Metadata
+Generated: %s
+Timestamp: %s
+
+Files in this folder:
+- index.json        : Test index used for queries
+- results.csv       : Query results in CSV format
+- results.json      : Query results in JSON format
+- diff.txt          : Detailed comparison/analysis (if comparison run)
+- metadata.txt      : This file
+
+Query Count: %d
+Queries Run:
+`,
+		runTimestamp.Format("2006-01-02 15:04:05"),
+		timestampStr,
+		len(allResults),
+	)
+
+	for i, result := range allResults {
+		metadataContent += fmt.Sprintf("  %d. %s (%s) - %d results\n",
+			i+1, result.Query, result.Algorithm, len(result.Results))
 	}
+
+	if err := os.WriteFile(metadataPath, []byte(metadataContent), 0644); err != nil {
+		fmt.Printf("⚠️  Warning: Could not create metadata: %s\n", err)
+	}
+
+	// Print folder structure
+	fmt.Println()
+	fmt.Println("════════════════════════════════════════")
+	fmt.Printf("📁 Run folder: %s\n", resultsFolder)
+	fmt.Println("════════════════════════════════════════")
+	fmt.Println()
+	fmt.Println("Files created:")
+	files, _ := os.ReadDir(resultsFolder)
+	for _, file := range files {
+		if !file.IsDir() {
+			info, _ := file.Info()
+			fmt.Printf("  ✓ %s (%d bytes)\n", file.Name(), info.Size())
+		}
+	}
+	fmt.Println()
 
 	return nil
 }

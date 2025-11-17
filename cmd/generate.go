@@ -19,7 +19,6 @@ const version = "1.0.0"
 
 var (
 	generateOutput string
-	generateNoDate bool
 )
 
 var generateCmd = &cobra.Command{
@@ -29,7 +28,7 @@ var generateCmd = &cobra.Command{
 locally for consistent testing. This ensures all query tests run against the same
 dataset.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runGenerate(cfgFile, generateOutput, generateNoDate, verbose)
+		return runGenerate(cfgFile, generateOutput, verbose)
 	},
 }
 
@@ -37,19 +36,13 @@ func init() {
 	rootCmd.AddCommand(generateCmd)
 
 	generateCmd.Flags().StringVarP(&generateOutput, "output", "o", "",
-		"Output file for stored index (overrides config)")
-	generateCmd.Flags().BoolVar(&generateNoDate, "no-date", false,
-		"Don't add timestamp to filename")
+		"Output folder for stored index (overrides config)")
 }
 
-func runGenerate(configFile, outputFile string, noDate, verbose bool) error {
+func runGenerate(configFile, outputPath string, verbose bool) error {
 	cfg, err := config.Load(configFile)
 	if err != nil {
 		return fmt.Errorf("error loading config: %w", err)
-	}
-
-	if outputFile != "" {
-		cfg.Output.IndexFile = outputFile
 	}
 
 	if verbose {
@@ -108,31 +101,62 @@ func runGenerate(configFile, outputFile string, noDate, verbose bool) error {
 		return fmt.Errorf("error marshaling index: %w", err)
 	}
 
-	// Add timestamp to filename unless disabled
-	outputPath := cfg.Output.IndexFile
-	if !noDate {
-		timestamp := now.Format("2006-01-02_15-04-05")
-		dir := filepath.Dir(outputPath)
-		ext := filepath.Ext(outputPath)
-		base := filepath.Base(outputPath)
-		name := base[:len(base)-len(ext)]
-		outputPath = filepath.Join(dir, fmt.Sprintf("%s_%s%s", name, timestamp, ext))
-	}
+	// Create timestamped run folder
+	timestampStr := now.Format("2006-01-02_15-04-05")
+	runFolder := filepath.Join(filepath.Dir(cfg.Output.IndexFile), "run_"+timestampStr)
 
-	// Ensure output directory exists
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+	if err := os.MkdirAll(runFolder, 0755); err != nil {
 		return fmt.Errorf("error creating output directory: %w", err)
 	}
 
-	if err := os.WriteFile(outputPath, data, 0644); err != nil {
+	indexPath := filepath.Join(runFolder, "index.json")
+
+	if err := os.WriteFile(indexPath, data, 0644); err != nil {
 		return fmt.Errorf("error writing file: %w", err)
 	}
 
+	// Create metadata file
+	metadataPath := filepath.Join(runFolder, "metadata.txt")
+	metadataContent := fmt.Sprintf(`Search Test Bed - Index Generation
+Generated: %s
+Timestamp: %s
+
+Index Information:
+- Source Index: %s
+- Document Count: %d
+- Version: %s
+
+Files in this folder:
+- index.json        : Generated test index
+- metadata.txt      : This file
+- results.csv       : Query results (created when running queries)
+- results.json      : Query results (created when running queries)
+- diff.txt          : Comparison analysis (created when comparing runs)
+`,
+		now.Format("2006-01-02 15:04:05"),
+		timestampStr,
+		sourceIndex,
+		len(docs),
+		version,
+	)
+
+	if err := os.WriteFile(metadataPath, []byte(metadataContent), 0644); err != nil {
+		fmt.Printf("⚠️  Warning: Could not create metadata: %s\n", err)
+	}
+
 	fmt.Println()
-	fmt.Printf("✅ Stored %d documents to %s\n", len(docs), outputPath)
+	fmt.Println("════════════════════════════════════════")
+	fmt.Printf("📁 Index generated in: %s\n", runFolder)
+	fmt.Println("════════════════════════════════════════")
+	fmt.Println()
+	fmt.Printf("✅ Stored %d documents\n", len(docs))
 	fmt.Printf("   Source: %s\n", sourceIndex)
 	fmt.Printf("   Version: %s\n", version)
-	fmt.Printf("   Generated at: %s\n", stored.GeneratedAt.Format("2006-01-02 15:04:05"))
+	fmt.Println()
+	fmt.Println("Files created:")
+	fmt.Printf("  ✓ index.json\n")
+	fmt.Printf("  ✓ metadata.txt\n")
+	fmt.Println()
 
 	return nil
 }

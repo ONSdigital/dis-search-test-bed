@@ -91,41 +91,45 @@ generate: build
 	@./$(BINARY_DIR)/$(BINARY_NAME) generate --config $(CONFIG_FILE)
 	@echo "✅ Generation complete"
 	@echo ""
-	@echo "Generated index:"
-	@ls -lht $(DATA_DIR)/test_index_*.json 2>/dev/null | head -1
+	@echo "Generated index folder:"
+	@ls -ldt $(DATA_DIR)/run_* 2>/dev/null | head -1
 
 query: build
 	@echo "Running queries..."
-	@LATEST_INDEX=$$(ls -t $(DATA_DIR)/test_index_*.json 2>/dev/null | head -1); \
-	if [ -z "$$LATEST_INDEX" ]; then \
-		echo "❌ No test index found. Run 'make generate' first."; \
+	@LATEST_RUN=$$(ls -td $(DATA_DIR)/run_* 2>/dev/null | head -1); \
+	if [ -z "$$LATEST_RUN" ]; then \
+		echo "❌ No run folder found. Run 'make generate' first."; \
 		exit 1; \
 	fi; \
-	echo "Using index: $$LATEST_INDEX"; \
-	./$(BINARY_DIR)/$(BINARY_NAME) query --config $(CONFIG_FILE) --index "$$LATEST_INDEX" --queries $(QUERIES_FILE)
+	INDEX_FILE="$$LATEST_RUN/index.json"; \
+	if [ ! -f "$$INDEX_FILE" ]; then \
+		echo "❌ No index.json in $$LATEST_RUN"; \
+		exit 1; \
+	fi; \
+	echo "Using index from: $$LATEST_RUN"; \
+	./$(BINARY_DIR)/$(BINARY_NAME) query --config $(CONFIG_FILE) --index "$$INDEX_FILE" --queries $(QUERIES_FILE)
 	@echo "✅ Query complete"
 
 compare: build
 	@echo "Running queries with comparison..."
-	@LATEST_INDEX=$$(ls -t $(DATA_DIR)/test_index_*.json 2>/dev/null | head -1); \
-	if [ -z "$$LATEST_INDEX" ]; then \
-		echo "❌ No test index found. Run 'make generate' first."; \
+	@LATEST_RUN=$$(ls -td $(DATA_DIR)/run_* 2>/dev/null | head -1); \
+	if [ -z "$$LATEST_RUN" ]; then \
+		echo "❌ No run folder found. Run 'make generate' first."; \
 		exit 1; \
 	fi; \
-	LATEST_RESULTS=$$(ls -t $(DATA_DIR)/results_*.json 2>/dev/null | head -1); \
-	echo "Using index: $$LATEST_INDEX"; \
-	if [ -z "$$LATEST_RESULTS" ]; then \
+	INDEX_FILE="$$LATEST_RUN/index.json"; \
+	if [ ! -f "$$INDEX_FILE" ]; then \
+		echo "❌ No index.json in $$LATEST_RUN"; \
+		exit 1; \
+	fi; \
+	LATEST_RESULTS=$$(find $(DATA_DIR)/run_* -maxdepth 1 -name "results.json" -type f 2>/dev/null | xargs ls -t | head -1); \
+	echo "Using index from: $$LATEST_RUN"; \
+	if [ -z "$$LATEST_RESULTS" ] || [ "$$LATEST_RESULTS" = "$$LATEST_RUN/results.json" ]; then \
 		echo "ℹ️  No previous results found. Running without comparison..."; \
-		./$(BINARY_DIR)/$(BINARY_NAME) query --config $(CONFIG_FILE) --index "$$LATEST_INDEX" --queries $(QUERIES_FILE); \
+		./$(BINARY_DIR)/$(BINARY_NAME) query --config $(CONFIG_FILE) --index "$$INDEX_FILE" --queries $(QUERIES_FILE); \
 	else \
 		echo "📊 Comparing against: $$LATEST_RESULTS"; \
-		./$(BINARY_DIR)/$(BINARY_NAME) query --config $(CONFIG_FILE) --index "$$LATEST_INDEX" --queries $(QUERIES_FILE) --compare "$$LATEST_RESULTS"; \
-		echo ""; \
-		LATEST_DIFF=$$(ls -t $(DATA_DIR)/diff_*.txt 2>/dev/null | head -1); \
-		if [ -n "$$LATEST_DIFF" ]; then \
-			echo "Preview of diff:"; \
-			head -n 40 "$$LATEST_DIFF"; \
-		fi; \
+		./$(BINARY_DIR)/$(BINARY_NAME) query --config $(CONFIG_FILE) --index "$$INDEX_FILE" --queries $(QUERIES_FILE) --compare "$$LATEST_RESULTS"; \
 	fi
 	@echo "✅ Comparison complete"
 
@@ -241,60 +245,28 @@ list-indexes:
 	fi
 
 list-results:
-	@echo "Available results:"
-	@echo ""
-	@echo "CSV Results:"
-	@if [ -n "$$(ls -t $(DATA_DIR)/results_*.csv 2>/dev/null)" ]; then \
-		ls -lht $(DATA_DIR)/results_*.csv | head -5; \
+	@echo "Available run folders:"
+	@if [ -d data/run_* ]; then \
+		ls -ldt data/run_* 2>/dev/null | head -10; \
+		echo ""; \
+		echo "Latest run contents:"; \
+		LATEST=$$(ls -td data/run_* 2>/dev/null | head -1); \
+		if [ -n "$$LATEST" ]; then \
+			echo "📁 $$LATEST"; \
+			ls -lh "$$LATEST"/; \
+		fi; \
 	else \
-		echo "  None found"; \
-	fi
-	@echo ""
-	@echo "JSON Results:"
-	@if [ -n "$$(ls -t $(DATA_DIR)/results_*.json 2>/dev/null)" ]; then \
-		ls -lht $(DATA_DIR)/results_*.json | head -5; \
-	else \
-		echo "  None found"; \
-	fi
-	@echo ""
-	@echo "Diffs:"
-	@if [ -n "$$(ls -t $(DATA_DIR)/diff_*.txt 2>/dev/null)" ]; then \
-		ls -lht $(DATA_DIR)/diff_*.txt | head -5; \
-	else \
-		echo "  None found"; \
+		echo "  No run folders found"; \
 	fi
 
 archive:
-	@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
+	@echo "Archiving latest run..."
+	@LATEST=$$(ls -td $(DATA_DIR)/run_* 2>/dev/null | head -1); \
+	if [ -z "$$LATEST" ]; then \
+		echo "ℹ️  No runs to archive"; \
+		exit 1; \
+	fi; \
 	mkdir -p $(DATA_DIR)/archive; \
-	ARCHIVED=0; \
-	LATEST_INDEX=$$(ls -t $(DATA_DIR)/test_index_*.json 2>/dev/null | head -1); \
-	if [ -n "$$LATEST_INDEX" ]; then \
-		cp "$$LATEST_INDEX" $(DATA_DIR)/archive/; \
-		echo "✅ Archived: $$(basename $$LATEST_INDEX)"; \
-		ARCHIVED=1; \
-	fi; \
-	LATEST_CSV=$$(ls -t $(DATA_DIR)/results_*.csv 2>/dev/null | head -1); \
-	if [ -n "$$LATEST_CSV" ]; then \
-		cp "$$LATEST_CSV" $(DATA_DIR)/archive/; \
-		echo "✅ Archived: $$(basename $$LATEST_CSV)"; \
-		ARCHIVED=1; \
-	fi; \
-	LATEST_JSON=$$(ls -t $(DATA_DIR)/results_*.json 2>/dev/null | head -1); \
-	if [ -n "$$LATEST_JSON" ]; then \
-		cp "$$LATEST_JSON" $(DATA_DIR)/archive/; \
-		echo "✅ Archived: $$(basename $$LATEST_JSON)"; \
-		ARCHIVED=1; \
-	fi; \
-	LATEST_DIFF=$$(ls -t $(DATA_DIR)/diff_*.txt 2>/dev/null | head -1); \
-	if [ -n "$$LATEST_DIFF" ]; then \
-		cp "$$LATEST_DIFF" $(DATA_DIR)/archive/; \
-		echo "✅ Archived: $$(basename $$LATEST_DIFF)"; \
-		ARCHIVED=1; \
-	fi; \
-	if [ $$ARCHIVED -eq 0 ]; then \
-		echo "ℹ️  No files to archive"; \
-	else \
-		echo ""; \
-		echo "Archive timestamp: $$TIMESTAMP"; \
-	fi
+	ARCHIVE_NAME=$$(basename $$LATEST); \
+	cp -r "$$LATEST" $(DATA_DIR)/archive/; \
+	echo "✅ Archived: $(DATA_DIR)/archive/$$ARCHIVE_NAME"
