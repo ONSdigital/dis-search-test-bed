@@ -35,7 +35,7 @@ func init() {
 	seedCmd.Flags().StringVar(&esURL, "es-url",
 		"http://localhost:9200", "Elasticsearch URL")
 	seedCmd.Flags().StringVar(&esIndex, "index",
-		"production_index", "Index name to create")
+		"search_test", "Index name to create")
 }
 
 func seedData(esURL, indexName string, verbose bool) error {

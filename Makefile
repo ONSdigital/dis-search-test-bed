@@ -78,12 +78,12 @@ check-es:
 
 seed: build check-es
 	@echo "Seeding Elasticsearch..."
-	@./$(BINARY_DIR)/$(BINARY_NAME) seed --es-url "$(ES_URL)" --index production_index
+	@./$(BINARY_DIR)/$(BINARY_NAME) seed --es-url "$(ES_URL)" --index search_test
 	@echo "✅ Seeding complete"
 
 seed-verbose: build check-es
 	@echo "Seeding Elasticsearch (verbose)..."
-	@./$(BINARY_DIR)/$(BINARY_NAME) seed --es-url "$(ES_URL)" --index production_index --verbose
+	@./$(BINARY_DIR)/$(BINARY_NAME) seed --es-url "$(ES_URL)" --index search_test --verbose
 	@echo "✅ Seeding complete"
 
 generate: build
@@ -172,7 +172,7 @@ clean-all: clean
 	@echo "✅ Deep clean complete"
 
 dev-seed:
-	@$(GORUN) main.go seed --es-url "$(ES_URL)" --index production_index -v
+	@$(GORUN) main.go seed --es-url "$(ES_URL)" --index search_test -v
 
 dev-generate:
 	@$(GORUN) main.go generate --config $(CONFIG_FILE) -v

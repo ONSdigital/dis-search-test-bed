@@ -1,0 +1,17 @@
+/data
+
+/build
+/bin
+
+# Mac
+.DS_Store
+.go/
+
+#VSCode
+.vscode
+
+# Intellij
+.idea/
+*.iml
+*.iws
+.go/
