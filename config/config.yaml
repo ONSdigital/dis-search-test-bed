@@ -1,0 +1,20 @@
+# Elasticsearch configuration
+elasticsearch:
+  url: "http://localhost:11200"
+  index: "search_test"
+
+# Index generation settings
+generation:
+  source_index: ""  # Empty means use elasticsearch.index
+  document_count: 50
+
+# Output configuration
+output:
+  base_dir: "data"
+
+# Comparison settings
+comparison:
+  show_unchanged: false
+  highlight_new: true
+  show_scores: true
+  max_rank_display: 20

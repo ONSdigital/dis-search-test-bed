@@ -1,0 +1,220 @@
+[
+  {
+    "name": "bm25_default",
+    "description": "Standard BM25 algorithm with default parameters",
+    "queries": [
+      {
+        "query": "golang best practices",
+        "description": "Search for Go programming best practices",
+        "es_query": {
+          "query": {
+            "multi_match": {
+              "query": "golang best practices",
+              "fields": ["title^2", "body"],
+              "type": "best_fields"
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "go concurrency",
+        "description": "Search for Go concurrency information",
+        "es_query": {
+          "query": {
+            "multi_match": {
+              "query": "go concurrency",
+              "fields": ["title^2", "body"],
+              "type": "best_fields"
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "elasticsearch integration",
+        "description": "Search for Elasticsearch integration guides",
+        "es_query": {
+          "query": {
+            "multi_match": {
+              "query": "elasticsearch integration",
+              "fields": ["title^2", "body"],
+              "type": "best_fields"
+            }
+          },
+          "size": 20
+        }
+      }
+    ]
+  },
+  {
+    "name": "custom_boost",
+    "description": "Custom scoring with date boost and explicit scoring",
+    "queries": [
+      {
+        "query": "golang best practices",
+        "description": "With recency boost",
+        "es_query": {
+          "query": {
+            "function_score": {
+              "query": {
+                "multi_match": {
+                  "query": "golang best practices",
+                  "fields": ["title^2", "body"],
+                  "fuzziness": "AUTO"
+                }
+              },
+              "functions": [
+                {
+                  "gauss": {
+                    "date": {
+                      "origin": "now",
+                      "scale": "365d",
+                      "offset": "10d",
+                      "decay": 0.33
+                    }
+                  },
+                  "weight": 1.5
+                }
+              ],
+              "boost_mode": "sum",
+              "score_mode": "sum",
+              "max_boost": 42
+            }
+          },
+          "size": 20,
+          "min_score": 0.1
+        }
+      },
+      {
+        "query": "go concurrency",
+        "description": "With recency boost",
+        "es_query": {
+          "query": {
+            "function_score": {
+              "query": {
+                "multi_match": {
+                  "query": "go concurrency",
+                  "fields": ["title^2", "body"],
+                  "fuzziness": "AUTO"
+                }
+              },
+              "functions": [
+                {
+                  "gauss": {
+                    "date": {
+                      "origin": "now",
+                      "scale": "365d",
+                      "offset": "10d",
+                      "decay": 0.33
+                    }
+                  },
+                  "weight": 1.5
+                }
+              ],
+              "boost_mode": "sum",
+              "score_mode": "sum",
+              "max_boost": 42
+            }
+          },
+          "size": 20,
+          "min_score": 0.1
+        }
+      },
+      {
+        "query": "elasticsearch testing",
+        "description": "With recency and content type boost",
+        "es_query": {
+          "query": {
+            "function_score": {
+              "query": {
+                "bool": {
+                  "must": [
+                    {
+                      "multi_match": {
+                        "query": "elasticsearch testing",
+                        "fields": ["title^2", "body"]
+                      }
+                    }
+                  ],
+                  "should": [
+                    {
+                      "term": {
+                        "content_type": {
+                          "value": "tutorial",
+                          "boost": 1.5
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "functions": [
+                {
+                  "gauss": {
+                    "date": {
+                      "origin": "now",
+                      "scale": "365d",
+                      "offset": "10d",
+                      "decay": 0.33
+                    }
+                  },
+                  "weight": 1.5
+                }
+              ],
+              "boost_mode": "sum",
+              "score_mode": "sum",
+              "max_boost": 42
+            }
+          },
+          "size": 20,
+          "min_score": 0.1
+        }
+      }
+    ]
+  },
+  {
+    "name": "title_boost",
+    "description": "Heavy emphasis on title field",
+    "queries": [
+      {
+        "query": "golang best practices",
+        "description": "Title-focused search",
+        "es_query": {
+          "query": {
+            "multi_match": {
+              "query": "golang best practices",
+              "fields": [
+                "title^5",
+                "title.keyword^10",
+                "body^1"
+              ],
+              "type": "cross_fields",
+              "operator": "and"
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "go concurrency",
+        "description": "Title-focused search",
+        "es_query": {
+          "query": {
+            "multi_match": {
+              "query": "go concurrency",
+              "fields": [
+                "title^5",
+                "title.keyword^10",
+                "body^1"
+              ],
+              "type": "cross_fields",
+              "operator": "and"
+            }
+          },
+          "size": 20
+        }
+      }
+    ]
+  }
+]
