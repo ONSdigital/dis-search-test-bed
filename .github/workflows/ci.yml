@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+# Single source of truth for tool versions
+env:
+  GO_VERSION: '1.24'
+  GOLANGCI_LINT_VERSION: 'v2.5.0'
+
+jobs:
+  dis-search-test-bed-setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+  dis-search-test-bed-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Install dis-vulncheck
+        run: go install github.com/ONSdigital/dis-vulncheck@latest
+      - name: Run dis-vulncheck
+        run: make audit
+
+
+  dis-search-test-bed-build:
+    needs: dis-search-test-bed-setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run Go build test
+        run: make build
+
+  dis-search-test-bed-lint:
+    needs: dis-search-test-bed-setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run Go lint checks
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
