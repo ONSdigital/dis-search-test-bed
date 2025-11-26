@@ -18,3 +18,11 @@ comparison:
   highlight_new: true
   show_scores: true
   max_rank_display: 20
+
+# Test data generation settings
+test_data:
+  mode: "file"                            # "random" or "file"
+  source_file: "testdata/documents.json"    # Path to JSON file (if mode is "file")
+  seed: 42                                  # Random seed (if mode is "random")
+  document_count: 50                        # Number of documents to generate (if mode is "random")
+  description: "Default static test data"

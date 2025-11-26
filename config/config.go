@@ -13,6 +13,7 @@ type Config struct {
 	Generation    GenerationConfig    `yaml:"generation"`
 	Output        OutputConfig        `yaml:"output"`
 	Comparison    ComparisonConfig    `yaml:"comparison"`
+	TestData      TestDataConfig      `yaml:"test_data"`
 }
 
 // ElasticsearchConfig holds Elasticsearch connection settings
@@ -40,6 +41,15 @@ type ComparisonConfig struct {
 	MaxRankDisplay int  `yaml:"max_rank_display"`
 }
 
+// TestDataConfig holds test data generation settings
+type TestDataConfig struct {
+	Mode          string `yaml:"mode"`           // "random" or "file"
+	SourceFile    string `yaml:"source_file"`    // Path to JSON file if mode is "file"
+	Seed          int64  `yaml:"seed"`           // Random seed for reproducibility
+	DocumentCount int    `yaml:"document_count"` // Number of documents to generate (if random)
+	Description   string `yaml:"description"`    // Description for this dataset
+}
+
 // Load reads and parses the configuration file from the specified path.
 // It applies environment variable overrides and sensible defaults.
 func Load(path string) (*Config, error) {
@@ -59,6 +69,15 @@ func Load(path string) (*Config, error) {
 	}
 	if index := os.Getenv("ES_INDEX"); index != "" {
 		cfg.Elasticsearch.Index = index
+	}
+	if seed := os.Getenv("TESTBED_SEED"); seed != "" {
+		var s int64
+		if _, err := fmt.Sscanf(seed, "%d", &s); err == nil {
+			cfg.TestData.Seed = s
+		}
+	}
+	if sourceFile := os.Getenv("TESTBED_SOURCE_FILE"); sourceFile != "" {
+		cfg.TestData.SourceFile = sourceFile
 	}
 
 	// Apply defaults
@@ -83,5 +102,14 @@ func (c *Config) applyDefaults() {
 	}
 	if c.Comparison.MaxRankDisplay == 0 {
 		c.Comparison.MaxRankDisplay = 20
+	}
+	if c.TestData.Mode == "" {
+		c.TestData.Mode = "random"
+	}
+	if c.TestData.DocumentCount == 0 {
+		c.TestData.DocumentCount = 50
+	}
+	if c.TestData.Seed == 0 {
+		c.TestData.Seed = 42
 	}
 }

@@ -10,7 +10,7 @@
           "query": {
             "multi_match": {
               "query": "golang concurrency best practices",
-              "fields": ["title^3", "body^1"],
+              "fields": ["title^2", "body"],
               "type": "best_fields",
               "operator": "or"
             }
@@ -28,60 +28,6 @@
                 "query": "testing",
                 "fuzziness": "AUTO"
               }
-            }
-          },
-          "size": 20
-        }
-      },
-      {
-        "query": "elasticsearch integration tutorial",
-        "description": "Phrase-like query combining multiple concepts",
-        "es_query": {
-          "query": {
-            "bool": {
-              "should": [
-                {
-                  "match": {
-                    "title": {
-                      "query": "elasticsearch integration tutorial",
-                      "boost": 2
-                    }
-                  }
-                },
-                {
-                  "match": {
-                    "body": {
-                      "query": "elasticsearch integration tutorial"
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "size": 20
-        }
-      },
-      {
-        "query": "performance optimization",
-        "description": "Query testing content type filtering",
-        "es_query": {
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "multi_match": {
-                    "query": "performance optimization",
-                    "fields": ["title", "body"]
-                  }
-                }
-              ],
-              "filter": [
-                {
-                  "term": {
-                    "content_type": "article"
-                  }
-                }
-              ]
             }
           },
           "size": 20
@@ -129,54 +75,6 @@
           },
           "size": 20
         }
-      },
-      {
-        "query": "elasticsearch",
-        "description": "Specific technology search with title emphasis",
-        "es_query": {
-          "query": {
-            "multi_match": {
-              "query": "elasticsearch",
-              "fields": [
-                "title^5",
-                "title.keyword^10",
-                "body^1"
-              ],
-              "type": "best_fields"
-            }
-          },
-          "size": 20
-        }
-      },
-      {
-        "query": "guide tutorial",
-        "description": "Content type and title emphasis query",
-        "es_query": {
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "multi_match": {
-                    "query": "guide tutorial",
-                    "fields": ["title^5", "body"],
-                    "type": "best_fields"
-                  }
-                }
-              ],
-              "should": [
-                {
-                  "term": {
-                    "content_type.keyword": {
-                      "value": "tutorial",
-                      "boost": 2
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "size": 20
-        }
       }
     ]
   },
@@ -220,37 +118,6 @@
         }
       },
       {
-        "query": "testing",
-        "description": "Single term with recency bias",
-        "es_query": {
-          "query": {
-            "function_score": {
-              "query": {
-                "match": {
-                  "body": "testing"
-                }
-              },
-              "functions": [
-                {
-                  "gauss": {
-                    "date": {
-                      "origin": "now",
-                      "scale": "365d",
-                      "offset": "10d",
-                      "decay": 0.33
-                    }
-                  },
-                  "weight": 1.5
-                }
-              ],
-              "boost_mode": "sum",
-              "score_mode": "sum"
-            }
-          },
-          "size": 20
-        }
-      },
-      {
         "query": "best practices",
         "description": "Common phrase with decay function",
         "es_query": {
@@ -276,45 +143,6 @@
               ],
               "boost_mode": "multiply",
               "score_mode": "sum"
-            }
-          },
-          "size": 20
-        }
-      },
-      {
-        "query": "microservices architecture design",
-        "description": "Multi-concept query with aggressive recency boost",
-        "es_query": {
-          "query": {
-            "function_score": {
-              "query": {
-                "bool": {
-                  "must": [
-                    {
-                      "multi_match": {
-                        "query": "microservices architecture design",
-                        "fields": ["title^2", "body"]
-                      }
-                    }
-                  ]
-                }
-              },
-              "functions": [
-                {
-                  "gauss": {
-                    "date": {
-                      "origin": "now",
-                      "scale": "180d",
-                      "offset": "15d",
-                      "decay": 0.25
-                    }
-                  },
-                  "weight": 2.5
-                }
-              ],
-              "boost_mode": "sum",
-              "score_mode": "sum",
-              "max_boost": 50
             }
           },
           "size": 20
@@ -375,80 +203,6 @@
           },
           "size": 20
         }
-      },
-      {
-        "query": "programming",
-        "description": "Boosted tutorials over articles",
-        "es_query": {
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "match": {
-                    "body": "programming"
-                  }
-                }
-              ],
-              "should": [
-                {
-                  "term": {
-                    "content_type": {
-                      "value": "tutorial",
-                      "boost": 3
-                    }
-                  }
-                },
-                {
-                  "term": {
-                    "content_type": {
-                      "value": "article",
-                      "boost": 1
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "size": 20
-        }
-      },
-      {
-        "query": "web development",
-        "description": "Complex bool query with multiple filters and boosts",
-        "es_query": {
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "multi_match": {
-                    "query": "web development",
-                    "fields": ["title^2", "body"]
-                  }
-                }
-              ],
-              "should": [
-                {
-                  "term": {
-                    "content_type": {
-                      "value": "tutorial",
-                      "boost": 5
-                    }
-                  }
-                },
-                {
-                  "match": {
-                    "title": {
-                      "query": "web development",
-                      "boost": 3
-                    }
-                  }
-                }
-              ],
-              "minimum_should_match": 1
-            }
-          },
-          "size": 20
-        }
       }
     ]
   },
@@ -458,7 +212,7 @@
     "queries": [
       {
         "query": "golang best practices",
-        "description": "Combines title boost, phrase matching, and content type preference",
+        "description": "Combines title boost, phrase matching, and content type",
         "es_query": {
           "query": {
             "bool": {
@@ -481,14 +235,6 @@
                   }
                 },
                 {
-                  "match_phrase": {
-                    "body": {
-                      "query": "golang best practices",
-                      "boost": 2
-                    }
-                  }
-                },
-                {
                   "term": {
                     "content_type": {
                       "value": "article",
@@ -496,52 +242,6 @@
                     }
                   }
                 }
-              ],
-              "minimum_should_match": 0
-            }
-          },
-          "size": 20
-        }
-      },
-      {
-        "query": "database optimization performance",
-        "description": "Multi-term technical query with bool logic",
-        "es_query": {
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "bool": {
-                    "should": [
-                      {
-                        "match": {
-                          "title": {
-                            "query": "database optimization performance",
-                            "boost": 4
-                          }
-                        }
-                      },
-                      {
-                        "match": {
-                          "body": {
-                            "query": "database optimization performance"
-                          }
-                        }
-                      }
-                    ],
-                    "minimum_should_match": 1
-                  }
-                }
-              ],
-              "should": [
-                {
-                  "term": {
-                    "content_type": {
-                      "value": "tutorial",
-                      "boost": 2
-                    }
-                  }
-                }
               ]
             }
           },
@@ -549,8 +249,8 @@
         }
       },
       {
-        "query": "Go microservices architecture",
-        "description": "Combined exact, fuzzy, and phrase matching",
+        "query": "microservices architecture",
+        "description": "Multi-concept query showing phrase and fuzzy matching",
         "es_query": {
           "query": {
             "bool": {
@@ -558,61 +258,21 @@
                 {
                   "match_phrase": {
                     "title": {
-                      "query": "Go microservices architecture",
+                      "query": "microservices architecture",
                       "boost": 5
                     }
                   }
                 },
                 {
                   "multi_match": {
-                    "query": "Go microservices architecture",
-                    "fields": ["title^3", "body^1"],
-                    "type": "best_fields",
+                    "query": "microservices architecture",
+                    "fields": ["title^3", "body"],
                     "fuzziness": "AUTO",
                     "boost": 2
-                  }
-                },
-                {
-                  "match": {
-                    "body": {
-                      "query": "Go microservices architecture",
-                      "operator": "and"
-                    }
                   }
                 }
               ],
               "minimum_should_match": 1
-            }
-          },
-          "size": 20
-        }
-      },
-      {
-        "query": "error handling patterns",
-        "description": "Demonstrate fuzzy matching with typo tolerance",
-        "es_query": {
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "multi_match": {
-                    "query": "error handling patterns",
-                    "fields": ["title^2", "body"],
-                    "fuzziness": "1",
-                    "prefix_length": 2
-                  }
-                }
-              ],
-              "should": [
-                {
-                  "match_phrase_prefix": {
-                    "title": {
-                      "query": "error handling",
-                      "boost": 3
-                    }
-                  }
-                }
-              ]
             }
           },
           "size": 20

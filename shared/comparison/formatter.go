@@ -11,8 +11,9 @@ import (
 
 // Symbol constants for formatting output
 const (
-	arrowUp        = "↑"
+	arrowUp        = "⬆️"
 	arrowDown      = "↓"
+	arrowSide      = "➡️"
 	trendUp        = "📈"
 	trendDown      = "📉"
 	iconNew        = "✨"
@@ -209,6 +210,122 @@ type RankingChange struct {
 	PrevRank    int
 	PrevScore   float64
 	IsUnchanged bool
+}
+
+// RankingComparison holds detailed comparison between two ranked results
+type RankingComparison struct {
+	URI             string
+	Title           string
+	R1Rank          int
+	R2Rank          int
+	R1Score         float64
+	R2Score         float64
+	RankDifference  int
+	ScoreDifference float64
+	Winner          string // "Q1", "Q2", or "TIE"
+	Reason          string // explanation of why
+	Confidence      string // "high", "medium", "low"
+}
+
+// compareRankings determines which query ranked a result better
+func (f *Formatter) compareRankings(r1, r2 models.SearchResult) RankingComparison {
+	comp := RankingComparison{
+		URI:             r1.URI,
+		Title:           r1.Title,
+		R1Rank:          r1.Rank,
+		R2Rank:          r2.Rank,
+		R1Score:         r1.Score,
+		R2Score:         r2.Score,
+		RankDifference:  r2.Rank - r1.Rank,
+		ScoreDifference: r1.Score - r2.Score,
+	}
+
+	// Analyze factors
+	rankAdvantage := r1.Rank < r2.Rank
+	scoreAdvantage := r1.Score > r2.Score
+	//bothAgree := rankAdvantage == scoreAdvantage
+
+	// Determine winner based on multiple factors
+	rankDiff := abs(comp.RankDifference)
+	scoreDiff := math.Abs(comp.ScoreDifference)
+
+	// Threshold for significance
+	rankThreshold := 2    // positions
+	scoreThreshold := 1.0 // score points
+
+	// Case 1: Rank and score both favor Q1
+	if rankAdvantage && scoreAdvantage {
+		comp.Winner = "Q1"
+		comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d) and higher score (%.2f vs %.2f)",
+			r1.Rank, r2.Rank, r1.Score, r2.Score)
+		comp.Confidence = "high"
+		return comp
+	}
+
+	// Case 2: Rank and score both favor Q2
+	if !rankAdvantage && !scoreAdvantage {
+		comp.Winner = "Q2"
+		comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d) and higher score (%.2f vs %.2f)",
+			r2.Rank, r1.Rank, r2.Score, r1.Score)
+		comp.Confidence = "high"
+		return comp
+	}
+
+	// Case 3: Conflicting signals - rank differs but score favors differently
+	if rankAdvantage && !scoreAdvantage {
+		// Rank is better, but score is lower - could be algorithmic difference
+		if rankDiff >= rankThreshold && scoreDiff >= scoreThreshold {
+			comp.Winner = "Q1"
+			comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d), despite lower score - Q1 prioritizes different factors",
+				r1.Rank, r2.Rank)
+			comp.Confidence = "medium"
+		} else if rankDiff < rankThreshold {
+			comp.Winner = "TIE"
+			comp.Reason = fmt.Sprintf("Similar rank (#%d vs #%d), Q2 has higher score - minimal difference",
+				r1.Rank, r2.Rank)
+			comp.Confidence = "low"
+		} else {
+			comp.Winner = "Q1"
+			comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d) despite lower score - ranking takes priority",
+				r1.Rank, r2.Rank)
+			comp.Confidence = "medium"
+		}
+		return comp
+	}
+
+	// Case 4: Opposite - score is better but rank is worse
+	if !rankAdvantage && scoreAdvantage {
+		if rankDiff >= rankThreshold && scoreDiff >= scoreThreshold {
+			comp.Winner = "Q2"
+			comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d), despite lower score - Q2 prioritizes different factors",
+				r2.Rank, r1.Rank)
+			comp.Confidence = "medium"
+		} else if rankDiff < rankThreshold {
+			comp.Winner = "TIE"
+			comp.Reason = fmt.Sprintf("Similar rank (#%d vs #%d), Q1 has higher score - minimal difference",
+				r1.Rank, r2.Rank)
+			comp.Confidence = "low"
+		} else {
+			comp.Winner = "Q2"
+			comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d) despite lower score - ranking takes priority",
+				r2.Rank, r1.Rank)
+			comp.Confidence = "medium"
+		}
+		return comp
+	}
+
+	// Shouldn't reach here, but default to TIE
+	comp.Winner = "TIE"
+	comp.Reason = "Unable to determine clear winner"
+	comp.Confidence = "low"
+	return comp
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
 }
 
 func (f *Formatter) writeRankingChanges(curr, prev models.QueryResults) error {
@@ -661,44 +778,51 @@ func (f *Formatter) writeCrossQueryRankingDifference(r1, r2 models.SearchResult)
 		change = -change
 	}
 
-	// Determine which query is better
-	var improvedIcon string
-	if r1.Rank < r2.Rank {
-		improvedIcon = fmt.Sprintf("%s (Q1 better)", iconImproved)
-	} else {
-		improvedIcon = fmt.Sprintf("%s (Q2 better)", iconWorsened)
+	// Get detailed comparison
+	comp := f.compareRankings(r1, r2)
+
+	// Determine visual indicator
+	var statusIcon string
+	switch comp.Winner {
+	case "Q1":
+		statusIcon = arrowUp
+	case "Q2":
+		statusIcon = arrowUp
+	default: // TIE
+		statusIcon = arrowSide
 	}
 
-	if err := f.writef("%s [%s%d] %s - %s\n",
-		indicators.Symbol, indicators.Arrow, change, r1.Title, improvedIcon); err != nil {
+	if err := f.writef("%s [%s%d] %s - %s %s\n",
+		indicators.Symbol, indicators.Arrow, change, r1.Title, statusIcon, comp.Winner); err != nil {
 		return fmt.Errorf("write ranking diff: %w", err)
 	}
+
 	if err := f.writef("    %s Query 1: #%d | %s Query 2: #%d\n",
 		iconQuery1, r1.Rank, iconQuery2, r2.Rank); err != nil {
 		return fmt.Errorf("write ranks: %w", err)
 	}
+
 	if f.options.ShowScores {
-		scoreDiff := r1.Score - r2.Score
-		if scoreDiff > 0 {
-			if err := f.writef("    Scores: %.4f %s → %.4f (Δ %.4f) - Q1 scores higher\n",
-				r1.Score, iconQuery1, r2.Score, scoreDiff); err != nil {
-				return fmt.Errorf("write scores: %w", err)
-			}
-		} else {
-			if err := f.writef("    Scores: %.4f %s → %.4f (Δ %.4f) - Q2 scores higher\n",
-				r1.Score, iconQuery1, r2.Score, -scoreDiff); err != nil {
-				return fmt.Errorf("write scores: %w", err)
-			}
+		if err := f.writef("    Scores: %.4f %s | %.4f %s\n",
+			r1.Score, iconQuery1, r2.Score, iconQuery2); err != nil {
+			return fmt.Errorf("write scores: %w", err)
 		}
 	}
+
+	// Show reason and confidence
+	if err := f.writef("    %s [%s] %s\n",
+		statusIcon, strings.ToUpper(comp.Confidence), comp.Reason); err != nil {
+		return fmt.Errorf("write reason: %w", err)
+	}
+
 	if err := f.writef("    URI: %s\n\n", r1.URI); err != nil {
 		return fmt.Errorf("write uri: %w", err)
 	}
+
 	return nil
 }
 
 // Helper functions
-
 func makeURIMap(results []models.SearchResult) map[string]models.SearchResult {
 	m := make(map[string]models.SearchResult, len(results))
 	for _, r := range results {

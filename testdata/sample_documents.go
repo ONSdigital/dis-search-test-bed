@@ -1,411 +1,92 @@
 package testdata
 
 import (
+	"encoding/json"
+	"fmt"
+	"math/rand"
+	"os"
+
 	"github.com/ONSdigital/dis-search-test-bed/models"
 )
 
-// GetSampleDocuments returns sample documents for testing
+// Sample content for generating variety
+var (
+	technologies = []string{"Go", "Python", "Java", "Rust", "TypeScript", "Elasticsearch", "Kubernetes", "Docker"}
+	topics       = []string{"best practices", "tutorial", "guide", "advanced", "beginner", "performance", "security", "testing"}
+	contentTypes = []string{"article", "tutorial"}
+	baseURIs     = []string{"/go-", "/python-", "/java-", "/rust-", "/ts-"}
+)
+
+// GetSampleDocuments returns sample documents for testing with default configuration
 func GetSampleDocuments() []models.Document {
-	return []models.Document{
-		{
-			ID:          "1",
-			Title:       "Go Best Practices 2024",
-			URI:         "/go-best-practices",
-			Body:        "Learn the latest best practices for Go programming including error handling, concurrency patterns, and testing strategies.",
-			ContentType: "article",
-			Date:        "2024-01-15T00:00:00Z",
-		},
-		{
-			ID:          "2",
-			Title:       "Introduction to Golang",
-			URI:         "/intro-golang",
-			Body:        "A comprehensive guide to getting started with Go. Learn about syntax, data structures, and basic concepts.",
-			ContentType: "tutorial",
-			Date:        "2023-11-20T00:00:00Z",
-		},
-		{
-			ID:          "3",
-			Title:       "Advanced Go Concurrency",
-			URI:         "/advanced-concurrency",
-			Body:        "Deep dive into Go concurrency patterns including channels, select statements, and context usage.",
-			ContentType: "article",
-			Date:        "2024-02-01T00:00:00Z",
-		},
-		{
-			ID:          "4",
-			Title:       "Go Testing Guide",
-			URI:         "/go-testing",
-			Body:        "Complete guide to testing in Go including unit tests, table-driven tests, and benchmarking.",
-			ContentType: "tutorial",
-			Date:        "2024-01-10T00:00:00Z",
-		},
-		{
-			ID:          "5",
-			Title:       "Elasticsearch with Go",
-			URI:         "/elasticsearch-go",
-			Body:        "How to integrate Elasticsearch with Go applications. Learn about the official client and best practices.",
-			ContentType: "article",
-			Date:        "2023-12-15T00:00:00Z",
-		},
-		{
-			ID:          "6",
-			Title:       "Go Web Development",
-			URI:         "/go-web-dev",
-			Body:        "Building web applications with Go using standard library and popular frameworks.",
-			ContentType: "tutorial",
-			Date:        "2024-01-25T00:00:00Z",
-		},
-		{
-			ID:          "7",
-			Title:       "Go Performance Optimization",
-			URI:         "/go-performance",
-			Body:        "Tips and techniques for optimizing Go applications including profiling and memory management.",
-			ContentType: "article",
-			Date:        "2024-02-05T00:00:00Z",
-		},
-		{
-			ID:          "8",
-			Title:       "Go Design Patterns",
-			URI:         "/go-patterns",
-			Body:        "Common design patterns implemented in Go including singleton, factory, and observer patterns.",
-			ContentType: "article",
-			Date:        "2023-10-30T00:00:00Z",
-		},
-		{
-			ID:          "9",
-			Title:       "Go Microservices",
-			URI:         "/go-microservices",
-			Body:        "Building microservices architecture with Go. Learn about service communication and deployment.",
-			ContentType: "tutorial",
-			Date:        "2024-01-05T00:00:00Z",
-		},
-		{
-			ID:          "10",
-			Title:       "Go Database Programming",
-			URI:         "/go-database",
-			Body:        "Working with databases in Go using database/sql and popular ORMs.",
-			ContentType: "tutorial",
-			Date:        "2023-12-01T00:00:00Z",
-		},
-		{
-			ID:          "11",
-			Title:       "Go REST API Development",
-			URI:         "/go-rest-api",
-			Body:        "Creating RESTful APIs with Go including routing, middleware, and authentication.",
-			ContentType: "article",
-			Date:        "2024-01-20T00:00:00Z",
-		},
-		{
-			ID:          "12",
-			Title:       "Go Error Handling",
-			URI:         "/go-errors",
-			Body:        "Best practices for error handling in Go including custom errors and error wrapping.",
-			ContentType: "article",
-			Date:        "2024-02-10T00:00:00Z",
-		},
-		{
-			ID:          "13",
-			Title:       "Go Channels Tutorial",
-			URI:         "/go-channels",
-			Body:        "Understanding Go channels for concurrent programming including buffered and unbuffered channels.",
-			ContentType: "tutorial",
-			Date:        "2023-11-15T00:00:00Z",
-		},
-		{
-			ID:          "14",
-			Title:       "Go HTTP Client Best Practices",
-			URI:         "/go-http-client",
-			Body:        "Building robust HTTP clients in Go with timeouts, retries, and connection pooling.",
-			ContentType: "article",
-			Date:        "2024-01-30T00:00:00Z",
-		},
-		{
-			ID:          "15",
-			Title:       "Go Logging Strategies",
-			URI:         "/go-logging",
-			Body:        "Implementing effective logging in Go applications using structured logging and log levels.",
-			ContentType: "article",
-			Date:        "2023-12-20T00:00:00Z",
-		},
-		{
-			ID:          "16",
-			Title:       "Go Security Best Practices",
-			URI:         "/go-security",
-			Body:        "Security considerations for Go applications including input validation and crypto usage.",
-			ContentType: "article",
-			Date:        "2024-02-15T00:00:00Z",
-		},
-		{
-			ID:          "17",
-			Title:       "Go JSON Processing",
-			URI:         "/go-json",
-			Body:        "Working with JSON in Go including encoding, decoding, and custom marshalers.",
-			ContentType: "tutorial",
-			Date:        "2023-10-15T00:00:00Z",
-		},
-		{
-			ID:          "18",
-			Title:       "Go Context Package",
-			URI:         "/go-context",
-			Body:        "Understanding and using the context package for managing deadlines and cancellation.",
-			ContentType: "article",
-			Date:        "2024-01-12T00:00:00Z",
-		},
-		{
-			ID:          "19",
-			Title:       "Go Docker Deployment",
-			URI:         "/go-docker",
-			Body:        "Containerizing Go applications with Docker including multi-stage builds.",
-			ContentType: "tutorial",
-			Date:        "2024-02-20T00:00:00Z",
-		},
-		{
-			ID:          "20",
-			Title:       "Go CLI Tools",
-			URI:         "/go-cli",
-			Body:        "Building command-line tools with Go using cobra and other popular libraries.",
-			ContentType: "tutorial",
-			Date:        "2023-11-25T00:00:00Z",
-		},
-		{
-			ID:          "21",
-			Title:       "Go Dependency Management",
-			URI:         "/go-modules",
-			Body:        "Managing dependencies in Go using Go modules and best practices for versioning.",
-			ContentType: "article",
-			Date:        "2024-01-08T00:00:00Z",
-		},
-		{
-			ID:          "22",
-			Title:       "Go Generics Guide",
-			URI:         "/go-generics",
-			Body:        "Understanding and using generics in Go 1.18+ with practical examples.",
-			ContentType: "tutorial",
-			Date:        "2024-02-25T00:00:00Z",
-		},
-		{
-			ID:          "23",
-			Title:       "Go Reflection",
-			URI:         "/go-reflection",
-			Body:        "Advanced Go programming using reflection for dynamic type manipulation.",
-			ContentType: "article",
-			Date:        "2023-09-20T00:00:00Z",
-		},
-		{
-			ID:          "24",
-			Title:       "Go Testing with Mocks",
-			URI:         "/go-mocking",
-			Body:        "Using mocks and stubs in Go tests for better unit test isolation.",
-			ContentType: "tutorial",
-			Date:        "2024-01-18T00:00:00Z",
-		},
-		{
-			ID:          "25",
-			Title:       "Go Memory Management",
-			URI:         "/go-memory",
-			Body:        "Understanding Go memory management, garbage collection, and optimization techniques.",
-			ContentType: "article",
-			Date:        "2024-02-28T00:00:00Z",
-		},
-		{
-			ID:          "26",
-			Title:       "Go gRPC Services",
-			URI:         "/go-grpc",
-			Body:        "Building gRPC services with Go including protocol buffers and streaming.",
-			ContentType: "tutorial",
-			Date:        "2023-12-05T00:00:00Z",
-		},
-		{
-			ID:          "27",
-			Title:       "Go Authentication",
-			URI:         "/go-auth",
-			Body:        "Implementing authentication in Go applications using JWT and OAuth2.",
-			ContentType: "article",
-			Date:        "2024-01-22T00:00:00Z",
-		},
-		{
-			ID:          "28",
-			Title:       "Go Rate Limiting",
-			URI:         "/go-rate-limit",
-			Body:        "Implementing rate limiting in Go APIs for better resource management.",
-			ContentType: "article",
-			Date:        "2024-02-12T00:00:00Z",
-		},
-		{
-			ID:          "29",
-			Title:       "Go WebSockets",
-			URI:         "/go-websockets",
-			Body:        "Real-time communication in Go using WebSockets for bidirectional data flow.",
-			ContentType: "tutorial",
-			Date:        "2023-11-10T00:00:00Z",
-		},
-		{
-			ID:          "30",
-			Title:       "Go Middleware Patterns",
-			URI:         "/go-middleware",
-			Body:        "Creating reusable middleware in Go for logging, authentication, and more.",
-			ContentType: "article",
-			Date:        "2024-01-28T00:00:00Z",
-		},
-		{
-			ID:          "31",
-			Title:       "Go Configuration Management",
-			URI:         "/go-config",
-			Body:        "Managing application configuration in Go using environment variables and config files.",
-			ContentType: "tutorial",
-			Date:        "2024-02-08T00:00:00Z",
-		},
-		{
-			ID:          "32",
-			Title:       "Go Profiling Guide",
-			URI:         "/go-profiling",
-			Body:        "Profiling Go applications to identify performance bottlenecks using pprof.",
-			ContentType: "article",
-			Date:        "2023-10-25T00:00:00Z",
-		},
-		{
-			ID:          "33",
-			Title:       "Go Template Engine",
-			URI:         "/go-templates",
-			Body:        "Using Go templates for dynamic HTML generation and text processing.",
-			ContentType: "tutorial",
-			Date:        "2024-01-16T00:00:00Z",
-		},
-		{
-			ID:          "34",
-			Title:       "Go File Operations",
-			URI:         "/go-files",
-			Body:        "Working with files in Go including reading, writing, and directory operations.",
-			ContentType: "tutorial",
-			Date:        "2023-12-10T00:00:00Z",
-		},
-		{
-			ID:          "35",
-			Title:       "Go Caching Strategies",
-			URI:         "/go-caching",
-			Body:        "Implementing caching in Go applications for improved performance.",
-			ContentType: "article",
-			Date:        "2024-02-18T00:00:00Z",
-		},
-		{
-			ID:          "36",
-			Title:       "Go Signal Handling",
-			URI:         "/go-signals",
-			Body:        "Graceful shutdown and signal handling in Go applications.",
-			ContentType: "article",
-			Date:        "2024-01-24T00:00:00Z",
-		},
-		{
-			ID:          "37",
-			Title:       "Go Time and Date",
-			URI:         "/go-time",
-			Body:        "Working with dates and times in Go including parsing and formatting.",
-			ContentType: "tutorial",
-			Date:        "2023-11-05T00:00:00Z",
-		},
-		{
-			ID:          "38",
-			Title:       "Go Regular Expressions",
-			URI:         "/go-regex",
-			Body:        "Using regular expressions in Go for pattern matching and text processing.",
-			ContentType: "tutorial",
-			Date:        "2024-01-14T00:00:00Z",
-		},
-		{
-			ID:          "39",
-			Title:       "Go CSV Processing",
-			URI:         "/go-csv",
-			Body:        "Reading and writing CSV files in Go for data import and export.",
-			ContentType: "tutorial",
-			Date:        "2024-02-22T00:00:00Z",
-		},
-		{
-			ID:          "40",
-			Title:       "Go XML Processing",
-			URI:         "/go-xml",
-			Body:        "Parsing and generating XML in Go using encoding/xml package.",
-			ContentType: "tutorial",
-			Date:        "2023-09-30T00:00:00Z",
-		},
-		{
-			ID:          "41",
-			Title:       "Go Email Sending",
-			URI:         "/go-email",
-			Body:        "Sending emails from Go applications using SMTP and email templates.",
-			ContentType: "article",
-			Date:        "2024-01-26T00:00:00Z",
-		},
-		{
-			ID:          "42",
-			Title:       "Go Message Queues",
-			URI:         "/go-queues",
-			Body:        "Integrating message queues with Go using RabbitMQ and Kafka.",
-			ContentType: "tutorial",
-			Date:        "2024-02-14T00:00:00Z",
-		},
-		{
-			ID:          "43",
-			Title:       "Go Distributed Tracing",
-			URI:         "/go-tracing",
-			Body:        "Implementing distributed tracing in Go microservices using OpenTelemetry.",
-			ContentType: "article",
-			Date:        "2023-12-28T00:00:00Z",
-		},
-		{
-			ID:          "44",
-			Title:       "Go Health Checks",
-			URI:         "/go-health",
-			Body:        "Implementing health check endpoints in Go applications for monitoring.",
-			ContentType: "article",
-			Date:        "2024-01-31T00:00:00Z",
-		},
-		{
-			ID:          "45",
-			Title:       "Go Kubernetes Operators",
-			URI:         "/go-operators",
-			Body:        "Building Kubernetes operators with Go for automated cluster management.",
-			ContentType: "tutorial",
-			Date:        "2024-02-26T00:00:00Z",
-		},
-		{
-			ID:          "46",
-			Title:       "Go Metrics Collection",
-			URI:         "/go-metrics",
-			Body:        "Collecting and exporting metrics from Go applications using Prometheus.",
-			ContentType: "article",
-			Date:        "2023-11-30T00:00:00Z",
-		},
-		{
-			ID:          "47",
-			Title:       "Go Circuit Breaker",
-			URI:         "/go-circuit-breaker",
-			Body:        "Implementing circuit breaker pattern in Go for resilient services.",
-			ContentType: "article",
-			Date:        "2024-02-04T00:00:00Z",
-		},
-		{
-			ID:          "48",
-			Title:       "Go API Versioning",
-			URI:         "/go-api-versioning",
-			Body:        "Strategies for versioning REST APIs in Go applications.",
-			ContentType: "article",
-			Date:        "2024-01-19T00:00:00Z",
-		},
-		{
-			ID:          "49",
-			Title:       "Go Database Migrations",
-			URI:         "/go-migrations",
-			Body:        "Managing database schema migrations in Go applications.",
-			ContentType: "tutorial",
-			Date:        "2023-10-10T00:00:00Z",
-		},
-		{
-			ID:          "50",
-			Title:       "Go Graceful Degradation",
-			URI:         "/go-degradation",
-			Body:        "Implementing graceful degradation patterns in Go for system resilience.",
-			ContentType: "article",
-			Date:        "2024-02-16T00:00:00Z",
-		},
+	return GetSampleDocumentsWithSeed(42, 50)
+}
+
+// GetSampleDocumentsWithSeed returns sample documents with custom seed and count
+func GetSampleDocumentsWithSeed(seed int64, docCount int) []models.Document {
+	rand.Seed(seed)
+
+	var docs []models.Document
+
+	for i := 1; i <= docCount; i++ {
+		tech := technologies[rand.Intn(len(technologies))]
+		topic := topics[rand.Intn(len(topics))]
+		contentType := contentTypes[rand.Intn(len(contentTypes))]
+		baseURI := baseURIs[rand.Intn(len(baseURIs))]
+
+		doc := models.Document{
+			ID:          fmt.Sprintf("%d", i),
+			Title:       fmt.Sprintf("%s %s %s", tech, topic, randomAdjective()),
+			URI:         fmt.Sprintf("%s%s-%d", baseURI, topic, i),
+			Body:        generateBody(tech, topic),
+			ContentType: contentType,
+			Date:        fmt.Sprintf("2024-01-0%d", (i%9)+1) + "T10:00:00Z",
+		}
+		docs = append(docs, doc)
 	}
+
+	return docs
+}
+
+// LoadDocumentsFromFile loads sample documents from a JSON file
+func LoadDocumentsFromFile(filePath string) ([]models.Document, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("read documents file: %w", err)
+	}
+
+	var docs []models.Document
+	if err := json.Unmarshal(data, &docs); err != nil {
+		return nil, fmt.Errorf("parse documents JSON: %w", err)
+	}
+
+	return docs, nil
+}
+
+// GetConfiguredDocuments returns documents based on configuration
+// If source_documents is specified, loads from file
+// Otherwise, generates random documents using seed
+func GetConfiguredDocuments(sourceDocumentsPath string, seed int64, docCount int) ([]models.Document, error) {
+	// If source file is specified, load from file
+	if sourceDocumentsPath != "" {
+		return LoadDocumentsFromFile(sourceDocumentsPath)
+	}
+
+	// Otherwise, generate random documents
+	return GetSampleDocumentsWithSeed(seed, docCount), nil
+}
+
+func generateBody(tech, topic string) string {
+	templates := []string{
+		fmt.Sprintf("Learn about %s %s including best practices, patterns, and real-world examples.", tech, topic),
+		fmt.Sprintf("Comprehensive guide to %s %s with detailed explanations and code samples.", tech, topic),
+		fmt.Sprintf("Master %s %s through this hands-on tutorial with step-by-step instructions.", tech, topic),
+		fmt.Sprintf("Advanced techniques for %s %s optimization, performance tuning, and scaling.", tech, topic),
+	}
+	return templates[rand.Intn(len(templates))]
+}
+
+func randomAdjective() string {
+	adjectives := []string{"Guide", "Handbook", "Reference", "Tips", "Tricks", "Essentials", "Masterclass"}
+	return adjectives[rand.Intn(len(adjectives))]
 }
