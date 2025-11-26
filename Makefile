@@ -97,8 +97,21 @@ generate: build ## Generate test index
 query: build ## Run queries
 	@./$(BIN_DIR)/$(BINARY_NAME) query
 
-compare: build ## Compare results
-	@./$(BIN_DIR)/$(BINARY_NAME) compare
+# Run comparisons (both by default)
+compare: build ## Run both historical and cross-query comparisons
+	@./$(BIN_DIR)/$(BINARY_NAME) compare --mode both
+
+# Just run historical comparison
+compare-hist: build ## Run historical comparison only
+	@./$(BIN_DIR)/$(BINARY_NAME) compare --mode historical
+
+# Just run cross-query comparison
+compare-cross: build ## Run cross-query comparison only
+	@./$(BIN_DIR)/$(BINARY_NAME) compare --mode cross-query
+
+# Run both comparisons
+compare-both: build ## Run both historical and cross-query comparisons
+	@./$(BIN_DIR)/$(BINARY_NAME) compare --mode both
 
 ##########################
 ## Workflows

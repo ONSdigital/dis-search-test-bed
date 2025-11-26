@@ -4,42 +4,84 @@
     "description": "Standard BM25 algorithm with default parameters",
     "queries": [
       {
-        "query": "golang best practices",
-        "description": "Search for Go programming best practices",
+        "query": "golang concurrency best practices",
+        "description": "Multi-word query testing relevance ranking",
         "es_query": {
           "query": {
             "multi_match": {
-              "query": "golang best practices",
-              "fields": ["title^2", "body"],
-              "type": "best_fields"
+              "query": "golang concurrency best practices",
+              "fields": ["title^3", "body^1"],
+              "type": "best_fields",
+              "operator": "or"
             }
           },
           "size": 20
         }
       },
       {
-        "query": "go concurrency",
-        "description": "Search for Go concurrency information",
+        "query": "testing",
+        "description": "Single word query with high recall",
         "es_query": {
           "query": {
-            "multi_match": {
-              "query": "go concurrency",
-              "fields": ["title^2", "body"],
-              "type": "best_fields"
+            "match": {
+              "body": {
+                "query": "testing",
+                "fuzziness": "AUTO"
+              }
             }
           },
           "size": 20
         }
       },
       {
-        "query": "elasticsearch integration",
-        "description": "Search for Elasticsearch integration guides",
+        "query": "elasticsearch integration tutorial",
+        "description": "Phrase-like query combining multiple concepts",
         "es_query": {
           "query": {
-            "multi_match": {
-              "query": "elasticsearch integration",
-              "fields": ["title^2", "body"],
-              "type": "best_fields"
+            "bool": {
+              "should": [
+                {
+                  "match": {
+                    "title": {
+                      "query": "elasticsearch integration tutorial",
+                      "boost": 2
+                    }
+                  }
+                },
+                {
+                  "match": {
+                    "body": {
+                      "query": "elasticsearch integration tutorial"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "performance optimization",
+        "description": "Query testing content type filtering",
+        "es_query": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "multi_match": {
+                    "query": "performance optimization",
+                    "fields": ["title", "body"]
+                  }
+                }
+              ],
+              "filter": [
+                {
+                  "term": {
+                    "content_type": "article"
+                  }
+                }
+              ]
             }
           },
           "size": 20
@@ -48,20 +90,144 @@
     ]
   },
   {
-    "name": "custom_boost",
-    "description": "Custom scoring with date boost and explicit scoring",
+    "name": "title_boost",
+    "description": "Aggressive title field weighting for title-focused search",
     "queries": [
       {
-        "query": "golang best practices",
-        "description": "With recency boost",
+        "query": "golang concurrency best practices",
+        "description": "Multi-word query with heavy title emphasis",
+        "es_query": {
+          "query": {
+            "multi_match": {
+              "query": "golang concurrency best practices",
+              "fields": [
+                "title^5",
+                "title.keyword^10",
+                "body^1"
+              ],
+              "type": "best_fields",
+              "operator": "or"
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "testing",
+        "description": "Title-focused ranking for single term",
+        "es_query": {
+          "query": {
+            "multi_match": {
+              "query": "testing",
+              "fields": [
+                "title^5",
+                "title.keyword^10",
+                "body^1"
+              ],
+              "type": "best_fields"
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "elasticsearch",
+        "description": "Specific technology search with title emphasis",
+        "es_query": {
+          "query": {
+            "multi_match": {
+              "query": "elasticsearch",
+              "fields": [
+                "title^5",
+                "title.keyword^10",
+                "body^1"
+              ],
+              "type": "best_fields"
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "guide tutorial",
+        "description": "Content type and title emphasis query",
+        "es_query": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "multi_match": {
+                    "query": "guide tutorial",
+                    "fields": ["title^5", "body"],
+                    "type": "best_fields"
+                  }
+                }
+              ],
+              "should": [
+                {
+                  "term": {
+                    "content_type.keyword": {
+                      "value": "tutorial",
+                      "boost": 2
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "size": 20
+        }
+      }
+    ]
+  },
+  {
+    "name": "recency_boosted",
+    "description": "Custom scoring with date-based decay for freshness",
+    "queries": [
+      {
+        "query": "golang concurrency best practices",
+        "description": "Recent content gets higher scores",
         "es_query": {
           "query": {
             "function_score": {
               "query": {
                 "multi_match": {
-                  "query": "golang best practices",
+                  "query": "golang concurrency best practices",
                   "fields": ["title^2", "body"],
-                  "fuzziness": "AUTO"
+                  "type": "best_fields"
+                }
+              },
+              "functions": [
+                {
+                  "gauss": {
+                    "date": {
+                      "origin": "now",
+                      "scale": "365d",
+                      "offset": "10d",
+                      "decay": 0.33
+                    }
+                  },
+                  "weight": 2
+                }
+              ],
+              "boost_mode": "sum",
+              "score_mode": "sum",
+              "max_boost": 42
+            }
+          },
+          "size": 20,
+          "min_score": 0.1
+        }
+      },
+      {
+        "query": "testing",
+        "description": "Single term with recency bias",
+        "es_query": {
+          "query": {
+            "function_score": {
+              "query": {
+                "match": {
+                  "body": "testing"
                 }
               },
               "functions": [
@@ -78,25 +244,21 @@
                 }
               ],
               "boost_mode": "sum",
-              "score_mode": "sum",
-              "max_boost": 42
+              "score_mode": "sum"
             }
           },
-          "size": 20,
-          "min_score": 0.1
+          "size": 20
         }
       },
       {
-        "query": "go concurrency",
-        "description": "With recency boost",
+        "query": "best practices",
+        "description": "Common phrase with decay function",
         "es_query": {
           "query": {
             "function_score": {
               "query": {
-                "multi_match": {
-                  "query": "go concurrency",
-                  "fields": ["title^2", "body"],
-                  "fuzziness": "AUTO"
+                "match_phrase": {
+                  "body": "best practices"
                 }
               },
               "functions": [
@@ -104,26 +266,24 @@
                   "gauss": {
                     "date": {
                       "origin": "now",
-                      "scale": "365d",
-                      "offset": "10d",
-                      "decay": 0.33
+                      "scale": "90d",
+                      "offset": "30d",
+                      "decay": 0.5
                     }
                   },
-                  "weight": 1.5
+                  "weight": 1.8
                 }
               ],
-              "boost_mode": "sum",
-              "score_mode": "sum",
-              "max_boost": 42
+              "boost_mode": "multiply",
+              "score_mode": "sum"
             }
           },
-          "size": 20,
-          "min_score": 0.1
+          "size": 20
         }
       },
       {
-        "query": "elasticsearch testing",
-        "description": "With recency and content type boost",
+        "query": "microservices architecture design",
+        "description": "Multi-concept query with aggressive recency boost",
         "es_query": {
           "query": {
             "function_score": {
@@ -132,18 +292,8 @@
                   "must": [
                     {
                       "multi_match": {
-                        "query": "elasticsearch testing",
+                        "query": "microservices architecture design",
                         "fields": ["title^2", "body"]
-                      }
-                    }
-                  ],
-                  "should": [
-                    {
-                      "term": {
-                        "content_type": {
-                          "value": "tutorial",
-                          "boost": 1.5
-                        }
                       }
                     }
                   ]
@@ -154,62 +304,315 @@
                   "gauss": {
                     "date": {
                       "origin": "now",
-                      "scale": "365d",
-                      "offset": "10d",
-                      "decay": 0.33
+                      "scale": "180d",
+                      "offset": "15d",
+                      "decay": 0.25
                     }
                   },
-                  "weight": 1.5
+                  "weight": 2.5
                 }
               ],
               "boost_mode": "sum",
               "score_mode": "sum",
-              "max_boost": 42
+              "max_boost": 50
             }
           },
-          "size": 20,
-          "min_score": 0.1
+          "size": 20
         }
       }
     ]
   },
   {
-    "name": "title_boost",
-    "description": "Heavy emphasis on title field",
+    "name": "content_type_filtered",
+    "description": "Demonstrate filtering and content-type specific ranking",
     "queries": [
       {
-        "query": "golang best practices",
-        "description": "Title-focused search",
+        "query": "golang",
+        "description": "Articles only (professional content)",
         "es_query": {
           "query": {
-            "multi_match": {
-              "query": "golang best practices",
-              "fields": [
-                "title^5",
-                "title.keyword^10",
-                "body^1"
+            "bool": {
+              "must": [
+                {
+                  "match": {
+                    "body": "golang"
+                  }
+                }
               ],
-              "type": "cross_fields",
-              "operator": "and"
+              "filter": [
+                {
+                  "term": {
+                    "content_type": "article"
+                  }
+                }
+              ]
             }
           },
           "size": 20
         }
       },
       {
-        "query": "go concurrency",
-        "description": "Title-focused search",
+        "query": "golang",
+        "description": "Tutorials only (learning content)",
         "es_query": {
           "query": {
-            "multi_match": {
-              "query": "go concurrency",
-              "fields": [
-                "title^5",
-                "title.keyword^10",
-                "body^1"
+            "bool": {
+              "must": [
+                {
+                  "match": {
+                    "body": "golang"
+                  }
+                }
               ],
-              "type": "cross_fields",
-              "operator": "and"
+              "filter": [
+                {
+                  "term": {
+                    "content_type": "tutorial"
+                  }
+                }
+              ]
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "programming",
+        "description": "Boosted tutorials over articles",
+        "es_query": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "match": {
+                    "body": "programming"
+                  }
+                }
+              ],
+              "should": [
+                {
+                  "term": {
+                    "content_type": {
+                      "value": "tutorial",
+                      "boost": 3
+                    }
+                  }
+                },
+                {
+                  "term": {
+                    "content_type": {
+                      "value": "article",
+                      "boost": 1
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "web development",
+        "description": "Complex bool query with multiple filters and boosts",
+        "es_query": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "multi_match": {
+                    "query": "web development",
+                    "fields": ["title^2", "body"]
+                  }
+                }
+              ],
+              "should": [
+                {
+                  "term": {
+                    "content_type": {
+                      "value": "tutorial",
+                      "boost": 5
+                    }
+                  }
+                },
+                {
+                  "match": {
+                    "title": {
+                      "query": "web development",
+                      "boost": 3
+                    }
+                  }
+                }
+              ],
+              "minimum_should_match": 1
+            }
+          },
+          "size": 20
+        }
+      }
+    ]
+  },
+  {
+    "name": "advanced_hybrid",
+    "description": "Advanced hybrid approach combining multiple ranking factors",
+    "queries": [
+      {
+        "query": "golang best practices",
+        "description": "Combines title boost, phrase matching, and content type preference",
+        "es_query": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "multi_match": {
+                    "query": "golang best practices",
+                    "fields": ["title^3", "body"],
+                    "type": "best_fields"
+                  }
+                }
+              ],
+              "should": [
+                {
+                  "match_phrase": {
+                    "title": {
+                      "query": "golang best practices",
+                      "boost": 5
+                    }
+                  }
+                },
+                {
+                  "match_phrase": {
+                    "body": {
+                      "query": "golang best practices",
+                      "boost": 2
+                    }
+                  }
+                },
+                {
+                  "term": {
+                    "content_type": {
+                      "value": "article",
+                      "boost": 1.5
+                    }
+                  }
+                }
+              ],
+              "minimum_should_match": 0
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "database optimization performance",
+        "description": "Multi-term technical query with bool logic",
+        "es_query": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "bool": {
+                    "should": [
+                      {
+                        "match": {
+                          "title": {
+                            "query": "database optimization performance",
+                            "boost": 4
+                          }
+                        }
+                      },
+                      {
+                        "match": {
+                          "body": {
+                            "query": "database optimization performance"
+                          }
+                        }
+                      }
+                    ],
+                    "minimum_should_match": 1
+                  }
+                }
+              ],
+              "should": [
+                {
+                  "term": {
+                    "content_type": {
+                      "value": "tutorial",
+                      "boost": 2
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "Go microservices architecture",
+        "description": "Combined exact, fuzzy, and phrase matching",
+        "es_query": {
+          "query": {
+            "bool": {
+              "should": [
+                {
+                  "match_phrase": {
+                    "title": {
+                      "query": "Go microservices architecture",
+                      "boost": 5
+                    }
+                  }
+                },
+                {
+                  "multi_match": {
+                    "query": "Go microservices architecture",
+                    "fields": ["title^3", "body^1"],
+                    "type": "best_fields",
+                    "fuzziness": "AUTO",
+                    "boost": 2
+                  }
+                },
+                {
+                  "match": {
+                    "body": {
+                      "query": "Go microservices architecture",
+                      "operator": "and"
+                    }
+                  }
+                }
+              ],
+              "minimum_should_match": 1
+            }
+          },
+          "size": 20
+        }
+      },
+      {
+        "query": "error handling patterns",
+        "description": "Demonstrate fuzzy matching with typo tolerance",
+        "es_query": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "multi_match": {
+                    "query": "error handling patterns",
+                    "fields": ["title^2", "body"],
+                    "fuzziness": "1",
+                    "prefix_length": 2
+                  }
+                }
+              ],
+              "should": [
+                {
+                  "match_phrase_prefix": {
+                    "title": {
+                      "query": "error handling",
+                      "boost": 3
+                    }
+                  }
+                }
+              ]
             }
           },
           "size": 20

@@ -18,6 +18,11 @@ const (
 	iconNew        = "✨"
 	iconRemoved    = "❌"
 	iconWarning    = "⚠️"
+	iconQuery1     = "🔍"
+	iconQuery2     = "🔎"
+	iconMatch      = "🎯"
+	iconImproved   = "✅"
+	iconWorsened   = "⚠️"
 	newLabel       = "[NEW]"
 	removedLabel   = "[REMOVED]"
 	unchangedLabel = "[---]"
@@ -25,20 +30,6 @@ const (
 	separatorChar  = "="
 	dashChar       = "-"
 )
-
-// RankingChange represents a change in ranking
-type RankingChange struct {
-	IsNew       bool
-	Rank        int
-	Title       string
-	URI         string
-	Score       float64
-	ContentType string
-	Date        string
-	PrevRank    int
-	PrevScore   float64
-	IsUnchanged bool
-}
 
 // RankChangeIndicators holds the arrow and symbol for rank changes
 type RankChangeIndicators struct {
@@ -206,6 +197,20 @@ func (f *Formatter) writeStats(stats models.ComparisonStats) error {
 	return nil
 }
 
+// RankingChange represents a change in ranking
+type RankingChange struct {
+	IsNew       bool
+	Rank        int
+	Title       string
+	URI         string
+	Score       float64
+	ContentType string
+	Date        string
+	PrevRank    int
+	PrevScore   float64
+	IsUnchanged bool
+}
+
 func (f *Formatter) writeRankingChanges(curr, prev models.QueryResults) error {
 	prevMap := makeURIMap(prev.Results)
 
@@ -322,13 +327,13 @@ func (f *Formatter) writeUnchangedResult(change RankingChange) error {
 
 func (f *Formatter) writeImprovedOrWorsenedResult(change RankingChange) error {
 	rankDiff := change.PrevRank - change.Rank
-	indicator := f.getRankChangeIndicators(rankDiff)
+	indicators := f.getRankChangeIndicators(rankDiff)
 	if rankDiff < 0 {
 		rankDiff = -rankDiff
 	}
 
 	if err := f.writef("%s [%s%d] #%d: %s (was #%d)\n",
-		indicator.Symbol, indicator.Arrow, rankDiff, change.Rank, change.Title, change.PrevRank); err != nil {
+		indicators.Symbol, indicators.Arrow, rankDiff, change.Rank, change.Title, change.PrevRank); err != nil {
 		return fmt.Errorf("write ranking change: %w", err)
 	}
 
@@ -469,10 +474,10 @@ func (f *Formatter) writeCrossQueryHeader(q1, q2 models.QueryResults) error {
 	if err := f.writef("%s\n", strings.Repeat(separatorChar, 70)); err != nil {
 		return fmt.Errorf("write separator: %w", err)
 	}
-	if err := f.writef("Query 1: %s (%s)\n", q1.Query, q1.Algorithm); err != nil {
+	if err := f.writef("%s Query 1: %s (%s)\n", iconQuery1, q1.Query, q1.Algorithm); err != nil {
 		return fmt.Errorf("write query1: %w", err)
 	}
-	if err := f.writef("Query 2: %s (%s)\n", q2.Query, q2.Algorithm); err != nil {
+	if err := f.writef("%s Query 2: %s (%s)\n", iconQuery2, q2.Query, q2.Algorithm); err != nil {
 		return fmt.Errorf("write query2: %w", err)
 	}
 	if err := f.writef("%s\n\n", strings.Repeat(dashChar, 70)); err != nil {
@@ -485,13 +490,13 @@ func (f *Formatter) writeCrossQueryStats(stats CrossQueryStats) error {
 	if err := f.writef("Statistics:\n"); err != nil {
 		return fmt.Errorf("write statistics header: %w", err)
 	}
-	if err := f.writef("  Common Results: %d\n", stats.CommonResults); err != nil {
+	if err := f.writef("  %s Common Results: %d\n", iconMatch, stats.CommonResults); err != nil {
 		return fmt.Errorf("write common results: %w", err)
 	}
-	if err := f.writef("  Only in Query 1: %d\n", stats.OnlyInQuery1); err != nil {
+	if err := f.writef("  %s Only in Query 1: %d\n", iconQuery1, stats.OnlyInQuery1); err != nil {
 		return fmt.Errorf("write only in query1: %w", err)
 	}
-	if err := f.writef("  Only in Query 2: %d\n", stats.OnlyInQuery2); err != nil {
+	if err := f.writef("  %s Only in Query 2: %d\n", iconQuery2, stats.OnlyInQuery2); err != nil {
 		return fmt.Errorf("write only in query2: %w", err)
 	}
 	if err := f.writef("  Ranking Differences: %d\n", stats.RankingDiffCount); err != nil {
@@ -530,7 +535,7 @@ func (f *Formatter) writeCrossQueryResults(q1, q2 models.QueryResults) error {
 }
 
 func (f *Formatter) writeOnlyInQuery1Results(q1 models.QueryResults, q2Map map[string]models.SearchResult, displayCount int) error {
-	if err := f.writef("--- Results Only in Query 1 ---\n"); err != nil {
+	if err := f.writef("--- %s Results Only in Query 1 ---\n", iconQuery1); err != nil {
 		return fmt.Errorf("write query1 header: %w", err)
 	}
 
@@ -538,7 +543,7 @@ func (f *Formatter) writeOnlyInQuery1Results(q1 models.QueryResults, q2Map map[s
 	for i := 0; i < displayCount && i < len(q1.Results); i++ {
 		r := q1.Results[i]
 		if _, exists := q2Map[r.URI]; !exists {
-			if err := f.writeCrossQueryResult(r); err != nil {
+			if err := f.writeCrossQueryResultQ1(r); err != nil {
 				return err
 			}
 			onlyInQ1++
@@ -559,7 +564,7 @@ func (f *Formatter) writeOnlyInQuery1Results(q1 models.QueryResults, q2Map map[s
 }
 
 func (f *Formatter) writeOnlyInQuery2Results(q2 models.QueryResults, q1Map map[string]models.SearchResult, displayCount int) error {
-	if err := f.writef("--- Results Only in Query 2 ---\n"); err != nil {
+	if err := f.writef("--- %s Results Only in Query 2 ---\n", iconQuery2); err != nil {
 		return fmt.Errorf("write query2 header: %w", err)
 	}
 
@@ -567,16 +572,8 @@ func (f *Formatter) writeOnlyInQuery2Results(q2 models.QueryResults, q1Map map[s
 	for i := 0; i < displayCount && i < len(q2.Results); i++ {
 		r := q2.Results[i]
 		if _, exists := q1Map[r.URI]; !exists {
-			if err := f.writef("%s #%d: %s\n", iconNew, r.Rank, r.Title); err != nil {
-				return fmt.Errorf("write result: %w", err)
-			}
-			if f.options.ShowScores {
-				if err := f.writef("    Score: %.4f\n", r.Score); err != nil {
-					return fmt.Errorf("write score: %w", err)
-				}
-			}
-			if err := f.writef("    URI: %s\n\n", r.URI); err != nil {
-				return fmt.Errorf("write uri: %w", err)
+			if err := f.writeCrossQueryResultQ2(r); err != nil {
+				return err
 			}
 			onlyInQ2++
 		}
@@ -596,7 +593,7 @@ func (f *Formatter) writeOnlyInQuery2Results(q2 models.QueryResults, q1Map map[s
 }
 
 func (f *Formatter) writeCrossQueryRankingDifferences(q1 models.QueryResults, q2Map map[string]models.SearchResult, displayCount int) error {
-	if err := f.writef("--- Ranking Differences for Common Results ---\n"); err != nil {
+	if err := f.writef("--- %s Ranking Differences for Common Results ---\n", iconMatch); err != nil {
 		return fmt.Errorf("write ranking diff header: %w", err)
 	}
 
@@ -627,8 +624,23 @@ func (f *Formatter) writeCrossQueryRankingDifferences(q1 models.QueryResults, q2
 	return nil
 }
 
-func (f *Formatter) writeCrossQueryResult(r models.SearchResult) error {
-	if err := f.writef("%s #%d: %s\n", iconRemoved, r.Rank, r.Title); err != nil {
+func (f *Formatter) writeCrossQueryResultQ1(r models.SearchResult) error {
+	if err := f.writef("%s #%d: %s\n", iconQuery1, r.Rank, r.Title); err != nil {
+		return fmt.Errorf("write result: %w", err)
+	}
+	if f.options.ShowScores {
+		if err := f.writef("    Score: %.4f\n", r.Score); err != nil {
+			return fmt.Errorf("write score: %w", err)
+		}
+	}
+	if err := f.writef("    URI: %s\n\n", r.URI); err != nil {
+		return fmt.Errorf("write uri: %w", err)
+	}
+	return nil
+}
+
+func (f *Formatter) writeCrossQueryResultQ2(r models.SearchResult) error {
+	if err := f.writef("%s #%d: %s\n", iconQuery2, r.Rank, r.Title); err != nil {
 		return fmt.Errorf("write result: %w", err)
 	}
 	if f.options.ShowScores {
@@ -644,21 +656,39 @@ func (f *Formatter) writeCrossQueryResult(r models.SearchResult) error {
 
 func (f *Formatter) writeCrossQueryRankingDifference(r1, r2 models.SearchResult) error {
 	change := r1.Rank - r2.Rank
-	indicator := f.getRankChangeIndicators(change)
+	indicators := f.getRankChangeIndicators(change)
 	if change < 0 {
 		change = -change
 	}
 
-	if err := f.writef("%s [%s%d] %s\n", indicator.Symbol, indicator.Arrow, change, r1.Title); err != nil {
+	// Determine which query is better
+	var improvedIcon string
+	if r1.Rank < r2.Rank {
+		improvedIcon = fmt.Sprintf("%s (Q1 better)", iconImproved)
+	} else {
+		improvedIcon = fmt.Sprintf("%s (Q2 better)", iconWorsened)
+	}
+
+	if err := f.writef("%s [%s%d] %s - %s\n",
+		indicators.Symbol, indicators.Arrow, change, r1.Title, improvedIcon); err != nil {
 		return fmt.Errorf("write ranking diff: %w", err)
 	}
-	if err := f.writef("    Query 1: #%d | Query 2: #%d\n", r1.Rank, r2.Rank); err != nil {
+	if err := f.writef("    %s Query 1: #%d | %s Query 2: #%d\n",
+		iconQuery1, r1.Rank, iconQuery2, r2.Rank); err != nil {
 		return fmt.Errorf("write ranks: %w", err)
 	}
 	if f.options.ShowScores {
-		if err := f.writef("    Scores: %.4f → %.4f (Δ %.4f)\n",
-			r1.Score, r2.Score, r2.Score-r1.Score); err != nil {
-			return fmt.Errorf("write scores: %w", err)
+		scoreDiff := r1.Score - r2.Score
+		if scoreDiff > 0 {
+			if err := f.writef("    Scores: %.4f %s → %.4f (Δ %.4f) - Q1 scores higher\n",
+				r1.Score, iconQuery1, r2.Score, scoreDiff); err != nil {
+				return fmt.Errorf("write scores: %w", err)
+			}
+		} else {
+			if err := f.writef("    Scores: %.4f %s → %.4f (Δ %.4f) - Q2 scores higher\n",
+				r1.Score, iconQuery1, r2.Score, -scoreDiff); err != nil {
+				return fmt.Errorf("write scores: %w", err)
+			}
 		}
 	}
 	if err := f.writef("    URI: %s\n\n", r1.URI); err != nil {

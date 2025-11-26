@@ -45,7 +45,7 @@ func NewComparison(current, previous []models.QueryResults, options Options, mod
 	}
 }
 
-// Generate creates the comparison report
+// Generate creates the comparison report based on the mode
 func (c *Comparison) Generate() (string, error) {
 	var buf bytes.Buffer
 	formatter := NewFormatter(&buf, c.options)
@@ -60,9 +60,8 @@ func (c *Comparison) Generate() (string, error) {
 			return "", err
 		}
 	case ModeBoth:
-		if err := c.generateBoth(formatter); err != nil {
-			return "", err
-		}
+		// This shouldn't be used directly - use separate calls instead
+		return "", fmt.Errorf("use ModeHistorical and ModeCrossQuery separately")
 	default:
 		return "", fmt.Errorf("unknown comparison mode: %d", c.mode)
 	}
@@ -81,51 +80,13 @@ func (c *Comparison) generateCrossQuery(formatter *Formatter) error {
 	return formatter.FormatCrossQuery(c.current)
 }
 
-func (c *Comparison) generateBoth(formatter *Formatter) error {
-	var buf bytes.Buffer
-
-	// Historical comparison
-	fmt.Fprintf(&buf, "%s\n", repeatChar("=", 80))
-	fmt.Fprintf(&buf, "HISTORICAL COMPARISON (Current Run vs Previous Run)\n")
-	fmt.Fprintf(&buf, "%s\n\n", repeatChar("=", 80))
-
-	if len(c.previous) > 0 {
-		histFormatter := NewFormatter(&buf, c.options)
-		if err := histFormatter.FormatHistorical(c.current, c.previous); err != nil {
-			return err
-		}
-	} else {
-		fmt.Fprintf(&buf, "No previous results available for historical comparison.\n")
-	}
-
-	// Separator
-	fmt.Fprintf(&buf, "\n\n")
-	fmt.Fprintf(&buf, "%s\n", repeatChar("#", 80))
-	fmt.Fprintf(&buf, "%s\n", repeatChar("#", 80))
-	fmt.Fprintf(&buf, "\n\n")
-
-	// Cross-query comparison
-	fmt.Fprintf(&buf, "%s\n", repeatChar("=", 80))
-	fmt.Fprintf(&buf, "CROSS-QUERY COMPARISON (Queries Within Current Run)\n")
-	fmt.Fprintf(&buf, "%s\n\n", repeatChar("=", 80))
-
-	crossFormatter := NewFormatter(&buf, c.options)
-	if err := crossFormatter.FormatCrossQuery(c.current); err != nil {
-		return err
-	}
-
-	// Write combined output to main formatter
-	formatter.writer.Write(buf.Bytes())
-	return nil
-}
-
 // GetSummary returns summary statistics
 func (c *Comparison) GetSummary() Summary {
 	summary := Summary{
 		Mode: c.modeString(),
 	}
 
-	if c.mode != ModeHistorical && c.mode != ModeBoth {
+	if c.mode != ModeHistorical {
 		return summary
 	}
 
