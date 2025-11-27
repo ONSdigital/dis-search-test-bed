@@ -22,14 +22,22 @@ const (
 	iconQuery1     = "🔍"
 	iconQuery2     = "🔎"
 	iconMatch      = "🎯"
-	iconImproved   = "✅"
-	iconWorsened   = "⚠️"
 	newLabel       = "[NEW]"
 	removedLabel   = "[REMOVED]"
 	unchangedLabel = "[---]"
 	infoLabel      = "[INFO]"
 	separatorChar  = "="
 	dashChar       = "-"
+
+	// Confidence levels
+	confidenceHigh   = "high"
+	confidenceMedium = "medium"
+	confidenceLow    = "low"
+
+	// Winner indicators
+	winnerQ1  = "Q1"
+	winnerQ2  = "Q2"
+	winnerTie = "TIE"
 )
 
 // RankChangeIndicators holds the arrow and symbol for rank changes
@@ -243,7 +251,6 @@ func (f *Formatter) compareRankings(r1, r2 models.SearchResult) RankingCompariso
 	// Analyze factors
 	rankAdvantage := r1.Rank < r2.Rank
 	scoreAdvantage := r1.Score > r2.Score
-	//bothAgree := rankAdvantage == scoreAdvantage
 
 	// Determine winner based on multiple factors
 	rankDiff := abs(comp.RankDifference)
@@ -255,19 +262,19 @@ func (f *Formatter) compareRankings(r1, r2 models.SearchResult) RankingCompariso
 
 	// Case 1: Rank and score both favor Q1
 	if rankAdvantage && scoreAdvantage {
-		comp.Winner = "Q1"
+		comp.Winner = winnerQ1
 		comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d) and higher score (%.2f vs %.2f)",
 			r1.Rank, r2.Rank, r1.Score, r2.Score)
-		comp.Confidence = "high"
+		comp.Confidence = confidenceHigh
 		return comp
 	}
 
 	// Case 2: Rank and score both favor Q2
 	if !rankAdvantage && !scoreAdvantage {
-		comp.Winner = "Q2"
+		comp.Winner = winnerQ2
 		comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d) and higher score (%.2f vs %.2f)",
 			r2.Rank, r1.Rank, r2.Score, r1.Score)
-		comp.Confidence = "high"
+		comp.Confidence = confidenceHigh
 		return comp
 	}
 
@@ -275,20 +282,20 @@ func (f *Formatter) compareRankings(r1, r2 models.SearchResult) RankingCompariso
 	if rankAdvantage && !scoreAdvantage {
 		// Rank is better, but score is lower - could be algorithmic difference
 		if rankDiff >= rankThreshold && scoreDiff >= scoreThreshold {
-			comp.Winner = "Q1"
+			comp.Winner = winnerQ1
 			comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d), despite lower score - Q1 prioritizes different factors",
 				r1.Rank, r2.Rank)
-			comp.Confidence = "medium"
+			comp.Confidence = confidenceMedium
 		} else if rankDiff < rankThreshold {
-			comp.Winner = "TIE"
+			comp.Winner = winnerTie
 			comp.Reason = fmt.Sprintf("Similar rank (#%d vs #%d), Q2 has higher score - minimal difference",
 				r1.Rank, r2.Rank)
-			comp.Confidence = "low"
+			comp.Confidence = confidenceLow
 		} else {
-			comp.Winner = "Q1"
+			comp.Winner = winnerQ1
 			comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d) despite lower score - ranking takes priority",
 				r1.Rank, r2.Rank)
-			comp.Confidence = "medium"
+			comp.Confidence = confidenceMedium
 		}
 		return comp
 	}
@@ -296,28 +303,28 @@ func (f *Formatter) compareRankings(r1, r2 models.SearchResult) RankingCompariso
 	// Case 4: Opposite - score is better but rank is worse
 	if !rankAdvantage && scoreAdvantage {
 		if rankDiff >= rankThreshold && scoreDiff >= scoreThreshold {
-			comp.Winner = "Q2"
+			comp.Winner = winnerQ2
 			comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d), despite lower score - Q2 prioritizes different factors",
 				r2.Rank, r1.Rank)
-			comp.Confidence = "medium"
+			comp.Confidence = confidenceMedium
 		} else if rankDiff < rankThreshold {
-			comp.Winner = "TIE"
+			comp.Winner = winnerTie
 			comp.Reason = fmt.Sprintf("Similar rank (#%d vs #%d), Q1 has higher score - minimal difference",
 				r1.Rank, r2.Rank)
-			comp.Confidence = "low"
+			comp.Confidence = confidenceLow
 		} else {
 			comp.Winner = "Q2"
 			comp.Reason = fmt.Sprintf("Better rank (#%d vs #%d) despite lower score - ranking takes priority",
 				r2.Rank, r1.Rank)
-			comp.Confidence = "medium"
+			comp.Confidence = confidenceMedium
 		}
 		return comp
 	}
 
 	// Shouldn't reach here, but default to TIE
-	comp.Winner = "TIE"
+	comp.Winner = winnerTie
 	comp.Reason = "Unable to determine clear winner"
-	comp.Confidence = "low"
+	comp.Confidence = confidenceLow
 	return comp
 }
 

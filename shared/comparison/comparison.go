@@ -128,11 +128,3 @@ type Summary struct {
 	ImprovedRankings int
 	WorsenedRankings int
 }
-
-func repeatChar(char string, count int) string {
-	result := ""
-	for i := 0; i < count; i++ {
-		result += char
-	}
-	return result
-}
