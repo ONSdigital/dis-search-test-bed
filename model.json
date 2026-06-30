@@ -1,0 +1,39 @@
+{
+  "relevance_scale": { "min": 0, "max": 4 },
+  "documents": [
+    {
+      "id": "cpi-latest",
+      "uri": "/economy/inflationandpriceindices/bulletins/consumerpriceinflation/april2026",
+      "title": "Consumer price inflation, UK: latest",
+      "content_type": "bulletin"
+    },
+    {
+      "id": "accountancy-services-timeseries",
+      "uri": "/businessindustryandtrade/business/activitysizeandlocation/adhocs/009963accountancyservicestimeseriesdata",
+      "title": "Accountancy services, UK: timeseries",
+      "content_type": "timeseries"
+    }
+  ],
+  "queries": [
+    {
+      "id": "q=cpi-latest",
+      "query": "cpi latest",
+      "description": "Most recent CPI bulletin"
+    },
+    {
+      "id": "q=stat",
+      "query": "stat",
+      "description": "single term ons.gov.uk/search?q=stat"
+    }, 
+    {
+      "id": "q=data",
+      "query": "data",
+      "description": "single term ons.gov.uk/search?q=data"
+    }
+  ],
+  "judgments": [
+    { "query_id": "q=cpi-latest", "doc_id": "cpi-latest", "relevance": 4 },
+    { "query_id": "q=data", "doc_id": "accountancy-services-timeseries", "relevance": 2 },
+    { "query_id": "q=stat", "doc_id": "cpi-latest", "relevance": 1 }
+  ]
+}
