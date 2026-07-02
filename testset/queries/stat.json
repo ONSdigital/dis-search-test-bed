@@ -1,0 +1,5 @@
+{
+  "id": "stat",
+  "query": "stat",
+  "description": "single term ons.gov.uk/search?q=stat"
+}
