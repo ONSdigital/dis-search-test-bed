@@ -1,0 +1,57 @@
+{{- /* count topics query */ -}}
+{
+  "query": {
+    "bool": {
+      "must": {
+        {{- if .Term }}
+          {{- template "matchWeightedTerm.tmpl" . }}
+        {{- else }}
+          {{- template "matchAll.tmpl" . }}
+        {{- end }}
+      },
+      "filter": [
+        {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {{ template "contentTypeFilter.tmpl" . }}
+                  ]
+                }
+              }
+              {{ if .URIPrefix }}
+              , {
+                "bool": {
+                  "should": [
+                    {{ template "contentFilterOnURIPrefix.tmpl" . }}
+                  ]
+                }
+              }
+              {{ end }}
+              {{ if .URIs }}
+              , {
+                "bool": {
+                  "should": [
+                    {{ template "uriFilters.tmpl" . }}
+                  ]
+                }
+              }
+              {{ end }}
+            ]
+          }
+        }
+      ]
+
+    }
+  },
+  "size": 0,
+  "aggregations": {
+    "topic": {
+      "terms": {
+        "size": 1000,
+        "field": "topics"
+      }
+    }
+  }
+}

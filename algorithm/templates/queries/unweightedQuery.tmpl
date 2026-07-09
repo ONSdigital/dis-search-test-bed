@@ -1,0 +1,19 @@
+{
+  {{ template "pagination.tmpl" . }}
+  "query": {
+    "bool": {
+      "must": {
+        {{- template "matchTerm.tmpl" . }}
+      },
+      {{ template "contentFilters.tmpl" . }}
+    }
+  },
+  {{ template "suggest.tmpl" . }},
+  {{ template "source.tmpl" . }},
+
+  {{- if .Highlight -}}
+    {{ template "highlight.tmpl" . }},
+  {{- end -}}
+
+  {{ template "sort.tmpl" . }}
+}

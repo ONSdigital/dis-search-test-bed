@@ -1,0 +1,8 @@
+{{ range $i,$e := .CDIDs }}
+{{ if $i }},{{ end }}
+{
+  "match": {
+    "cdid": "{{ . }}"
+  }
+}
+{{ end }}

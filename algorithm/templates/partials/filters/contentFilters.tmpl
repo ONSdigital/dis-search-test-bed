@@ -1,0 +1,79 @@
+"filter": [
+  {
+    "bool": {
+      "must": [
+        {
+          "bool": {
+            "should": [
+              {{ template "contentTypeFilter.tmpl" . }}
+            ]
+          }
+        },
+        {
+          "bool": {
+            "should": [
+              {
+                "range": {
+                  "release_date": {
+                    "gte": {{ .ReleasedAfter.ESString }},
+                    "lte": {{ .ReleasedBefore.ESString }}
+                  }
+                }
+              }
+            ]
+          }
+        }
+        {{ if .Topic }}
+        ,
+        {
+          "bool": {
+            "should": [
+              {{ template "topicFilters.tmpl" . }}
+            ]
+          }
+        }
+        {{ end }}
+        {{ if .URIPrefix }}
+        ,
+        {
+          "bool": {
+            "should": [
+              {{ template "uriPrefixFilter.tmpl" . }}
+            ]
+          }
+        }
+        {{ end }}
+        {{ if .URIs }}
+        ,
+        {
+          "bool": {
+            "should": [
+              {{ template "uriFilters.tmpl" . }}
+            ]
+          }
+        }
+        {{ end }}
+        {{ if .DatasetIDs }}
+        ,
+        {
+          "bool": {
+            "should": [
+              {{ template "datasetFilters.tmpl" . }}
+            ]
+          }
+        }
+        {{ end }}
+        {{ if .CDIDs }}
+        ,
+        {
+          "bool": {
+            "should": [
+              {{ template "cdidFilters.tmpl" . }}
+            ]
+          }
+        }
+        {{ end }}
+      ]
+    }
+  }
+]

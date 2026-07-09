@@ -1,0 +1,104 @@
+{
+  "aggregations": {
+    "content_types": {
+      "terms": {
+        "field": "type",
+        "size": 1000
+      }
+    }
+  },
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "must": {
+        "dis_max": {
+          "queries": [
+            {
+              "bool": {
+                "should": [
+                  {
+                    "match": {
+                      "title.title_no_dates": {
+                        "boost": 10,
+                        "minimum_should_match": "1\u003c-2 3\u003c80% 5\u003c60%",
+                        "query": "employment"
+                      }
+                    }
+                  },
+                  {
+                    "match": {
+                      "title.title_no_stem": {
+                        "boost": 10,
+                        "minimum_should_match": "1\u003c-2 3\u003c80% 5\u003c60%",
+                        "query": "employment"
+                      }
+                    }
+                  },
+                  {
+                    "multi_match": {
+                      "fields": [
+                        "title^10",
+                        "edition"
+                      ],
+                      "minimum_should_match": "3\u003c80% 5\u003c60%",
+                      "query": "employment",
+                      "type": "cross_fields"
+                    }
+                  },
+                  {
+                    "multi_match": {
+                      "boost": 10,
+                      "fields": [
+                        "title^10",
+                        "summary",
+                        "metaDescription",
+                        "edition"
+                      ],
+                      "query": "employment",
+                      "slop": 2,
+                      "type": "phrase"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "multi_match": {
+                "fields": [
+                  "summary",
+                  "metaDescription"
+                ],
+                "minimum_should_match": "75%",
+                "query": "employment",
+                "type": "best_fields"
+              }
+            },
+            {
+              "multi_match": {
+                "fields": [
+                  "cdid",
+                  "dataset_id",
+                  "uri"
+                ],
+                "query": "employment"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "size": 0
+}

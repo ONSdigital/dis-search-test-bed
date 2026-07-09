@@ -1,0 +1,27 @@
+{{- /* count query */ -}}
+
+{{- /* TODO: is this really necessary? */ -}}
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          {{- if .Term }}
+            {{- template "matchWeightedTerm.tmpl" . }}
+          {{- else }}
+            {{- template "matchAll.tmpl" . }}
+          {{- end }}
+        },
+        {
+          "bool": {
+            "must": {
+              "exists": {
+                "field": "topics"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

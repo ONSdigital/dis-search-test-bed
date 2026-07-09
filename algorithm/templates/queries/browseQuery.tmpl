@@ -1,0 +1,20 @@
+{
+  {{ template "pagination.tmpl" . }}
+  "query": {
+    "bool": {
+      "must": {
+          {{- template "matchAll.tmpl" . }}
+      },
+      {{ template "contentFilters.tmpl" . }}
+    }
+  },
+  "_source": {
+    "includes": [],
+    "excludes": [
+      "downloads.content",
+      "downloads*",
+      "pageData"
+    ]
+  },
+  {{ template "sort.tmpl" . }}
+}

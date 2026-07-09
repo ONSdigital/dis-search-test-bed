@@ -1,0 +1,11 @@
+"function_score": {
+  "query": {
+    {{ template "matchWeightedTerm.tmpl" . }}
+  },
+  "functions": [
+    {{ template "bulletinBoost.tmpl" . }},
+    {{ template "datasetLandingPageBoost.tmpl" . }},
+    {{ template "staticAdhocBoost.tmpl" . }},
+    {{ template "timeseriesBoost.tmpl" . }}
+  ]
+}

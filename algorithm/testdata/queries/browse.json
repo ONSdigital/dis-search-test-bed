@@ -1,0 +1,57 @@
+{
+  "_source": {
+    "excludes": [
+      "downloads.content",
+      "downloads*",
+      "pageData"
+    ],
+    "includes": []
+  },
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": []
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "range": {
+                        "release_date": {
+                          "gte": null,
+                          "lte": null
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "must": {
+        "match_all": {}
+      }
+    }
+  },
+  "size": 10,
+  "sort": [
+    {
+      "_score": {
+        "order": "desc"
+      }
+    },
+    {
+      "release_date": {
+        "order": "desc"
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+
+{{- if eq .SortBy "release_date" -}}
+    {{- template "sortByReleaseDate.tmpl" -}}
+{{- else if eq .SortBy "release_date_asc" -}}
+    {{- template "sortByReleaseDateAsc.tmpl" -}}
+{{- else if eq .SortBy "title" -}}
+    {{- template "sortByTitle.tmpl" -}}
+{{- else if eq .SortBy "first_letter" -}}
+    {{- template "sortByFirstLetter.tmpl" -}}
+{{- else -}}
+    {{- template "sortByRelevance.tmpl" -}}
+{{- end -}}

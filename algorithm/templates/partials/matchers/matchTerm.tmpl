@@ -1,0 +1,71 @@
+"dis_max": {
+  "queries": [
+    {
+      "bool": {
+        "should": [
+          {
+            "match": {
+              "title.title_no_dates": {
+                "query": "{{ .Term }}",
+                "minimum_should_match": "1<-2 3<80% 5<60%"
+              }
+            }
+          },
+          {
+            "match": {
+              "title.title_no_stem": {
+                "query": "{{ .Term }}",
+                "minimum_should_match": "1<-2 3<80% 5<60%"
+              }
+            }
+          },
+          {
+            "multi_match": {
+              "query": "{{ .Term }}",
+              "fields": [
+                "title^10",
+                "edition"
+              ],
+              "type": "cross_fields",
+              "minimum_should_match": "3<80% 5<60%"
+            }
+          },
+          {
+            "multi_match": {
+              "query": "{{ .Term }}",
+              "fields": [
+                "title^10",
+                "summary",
+                "metaDescription",
+                "edition"
+              ],
+              "type": "phrase",
+              "slop": 2
+            }
+          }
+        ]
+      }
+    },
+    {
+      "multi_match": {
+        "query": "{{ .Term }}",
+        "fields": [
+          "summary",
+          "metaDescription"
+        ],
+        "type": "best_fields",
+        "minimum_should_match": "75%"
+      }
+    },
+    {
+      "multi_match": {
+        "query": "{{ .Term }}",
+        "fields": [
+          "cdid",
+          "dataset_id",
+          "uri"
+        ]
+      }
+    }
+  ]
+}

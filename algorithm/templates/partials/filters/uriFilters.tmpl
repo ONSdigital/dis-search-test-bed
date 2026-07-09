@@ -1,0 +1,8 @@
+{{ range $i, $e := .URIs }}
+{{ if $i }},{{ end }}
+{
+  "match": {
+    "uri": "{{ . }}"
+  }
+}
+{{ end }}
