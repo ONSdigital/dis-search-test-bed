@@ -58,6 +58,69 @@ func TestCalculateDCG(t *testing.T) {
 	})
 }
 
+func TestCalculateNDCG(t *testing.T) {
+	Convey("Given a call to CalculateNDCG", t, func() {
+		Convey("When both lists are empty", func() {
+			result, err := CalculateNDCG([]int{}, []int{})
+
+			Convey("Then the NDCG should be 0.0 with no error", func() {
+				So(err, ShouldBeNil)
+				So(result, ShouldEqual, 0.0)
+			})
+		})
+
+		Convey("When the actual and ideal lists have different lengths", func() {
+			result, err := CalculateNDCG([]int{3, 2}, []int{3, 2, 1})
+
+			Convey("Then an error should be returned", func() {
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldEqual, "actual and ideal relevance scores must have the same length")
+				So(result, ShouldEqual, 0.0)
+			})
+		})
+
+		Convey("When all ideal relevance scores are zero", func() {
+			result, err := CalculateNDCG([]int{0, 0, 0}, []int{0, 0, 0})
+
+			Convey("Then the NDCG should be 0.0 with no error", func() {
+				So(err, ShouldBeNil)
+				So(result, ShouldEqual, 0.0)
+			})
+		})
+
+		Convey("When the actual ranking matches the ideal ranking exactly", func() {
+			scores := []int{3, 2, 1}
+			result, err := CalculateNDCG(scores, scores)
+
+			Convey("Then the NDCG should be 1.0", func() {
+				So(err, ShouldBeNil)
+				So(result, ShouldAlmostEqual, 1.0)
+			})
+		})
+
+		Convey("When the actual ranking is a permutation of the ideal ranking", func() {
+			actual := []int{1, 2, 3}
+			ideal := []int{3, 2, 1}
+			result, err := CalculateNDCG(actual, ideal)
+
+			Convey("Then the NDCG should be less than 1.0", func() {
+				So(err, ShouldBeNil)
+				So(result, ShouldBeLessThan, 1.0)
+				So(result, ShouldBeGreaterThan, 0.0)
+			})
+		})
+
+		Convey("When a single result is perfectly relevant", func() {
+			result, err := CalculateNDCG([]int{3}, []int{3})
+
+			Convey("Then the NDCG should be 1.0", func() {
+				So(err, ShouldBeNil)
+				So(result, ShouldAlmostEqual, 1.0)
+			})
+		})
+	})
+}
+
 func TestCalculateDiscountFactor(t *testing.T) {
 	Convey("Given a call to calculateDiscountFactor", t, func() {
 		Convey("When position is zero or negative", func() {

@@ -1,6 +1,30 @@
 package scoring
 
-import "math"
+import (
+	"errors"
+	"math"
+)
+
+// CalculateNDCG calculates the Normalized Discounted Cumulative Gain (NDCG)
+// for a given list of actual and ideal relevance scores.
+func CalculateNDCG(actualRelevanceScores, idealRelevanceScores []int) (float64, error) {
+	if len(actualRelevanceScores) != len(idealRelevanceScores) {
+		return 0.0, errors.New("actual and ideal relevance scores must have the same length")
+	}
+
+	if len(actualRelevanceScores) == 0 || len(idealRelevanceScores) == 0 {
+		return 0.0, nil
+	}
+
+	discountedCumulativeGain := CalculateDCG(actualRelevanceScores)
+	idealDiscountedCumulativeGain := CalculateDCG(idealRelevanceScores)
+
+	if idealDiscountedCumulativeGain == 0 {
+		return 0.0, nil
+	}
+
+	return discountedCumulativeGain / idealDiscountedCumulativeGain, nil
+}
 
 // CalculateDCG calculates the Discounted Cumulative Gain (DCG) for a given
 // list of relevance scores.
