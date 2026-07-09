@@ -102,6 +102,9 @@ lint-json:
 lint-json-fix:
 	$(NPX) prettier --write "**/*.json"
 
+lint-json-templates:
+	dis-json-template-linter ./**/*.tmpl
+
 audit: ## Run security audit
 	dis-vulncheck
 

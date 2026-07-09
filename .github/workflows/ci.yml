@@ -78,3 +78,18 @@ jobs:
           node-version-file: '.nvmrc'
       - name: Run JSON lint checks
         run: make lint-json
+
+  dis-search-test-bed-lint-json-templates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Install dis-json-template-linter
+        # Install a specific version of dis-json-template-linter as experimental
+        run: go install github.com/ONSdigital/dis-json-template-linter/cmd/dis-json-template-linter@9bd3cea
+      - name: Run dis-json-template-linter
+        run: make lint-json-templates

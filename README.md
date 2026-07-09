@@ -191,3 +191,16 @@ npm install -g prettier
 
 For running lint checks against Go template files for JSON - we are currently experimenting with our own linting tool, [dis-json-template-linter](https://github.com/ONSdigital/dis-json-template-linter).
 
+#### Integration testing
+
+To ensure we're producing valid ElasticSearch queries, we run them against a docker run instance of ElasticSearch using testcontainers.
+
+To get setup, follow our guidance on [using testcontainers](https://github.com/ONSdigital/dp-component-test/blob/main/README.md#using-testcontainers)
+
+If you're already setup, you will just need to ensure a docker daemon is running, for example via `colima start`.
+
+To skip these tests you can pass the `-short` flag to the go test command, e.g.
+
+```sh
+go test ./... -short
+```
