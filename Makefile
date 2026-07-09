@@ -1,5 +1,6 @@
 # Metadata
 BINARY_NAME := search-testbed
+SHELL := /bin/bash
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -17,6 +18,19 @@ GOCMD := go
 GOBUILD := $(GOCMD) build
 GOTEST := $(GOCMD) test
 GOMOD := $(GOCMD) mod
+
+# NVM helpers
+# In CI, actions/setup-node manages Node on PATH directly, so nvm exec is not needed (and will fail
+# because the version is not installed via nvm). Only use nvm exec in local environments.
+NVM_SOURCE_PATH ?= $(HOME)/.nvm/nvm.sh
+ifndef CI
+ifneq ("$(wildcard $(NVM_SOURCE_PATH))","")
+	NVM_EXEC = source $(NVM_SOURCE_PATH) && nvm exec --
+endif
+endif
+NPM = $(NVM_EXEC) npm
+NPX = $(NVM_EXEC) npx
+
 
 .PHONY: all help
 
@@ -77,8 +91,16 @@ fmt: ## Format code
 vet: ## Run go vet
 	@$(GOCMD) vet ./...
 
-lint: ## Run linter
+lint: lint-json lint-go ## Run all linters
+
+lint-go: ## Run linter
 	golangci-lint run ./...
+
+lint-json:
+	$(NPX) prettier --check "**/*.json"
+
+lint-json-fix:
+	$(NPX) prettier --write "**/*.json"
 
 audit: ## Run security audit
 	dis-vulncheck

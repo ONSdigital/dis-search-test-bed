@@ -7,14 +7,7 @@
   "cdid": "",
   "dataset_id": "",
   "edition": "",
-  "keywords": [
-    "cpi",
-    "cpih",
-    "inflation",
-    "consumer price inflation",
-    "prices",
-    "cost of living"
-  ],
+  "keywords": ["cpi", "cpih", "inflation", "consumer price inflation", "prices", "cost of living"],
   "meta_description": "The Consumer Prices Index including owner occupiers' housing costs (CPIH), the Consumer Prices Index (CPI) and the Retail Prices Index (RPI) inflation rates for the UK.",
   "release_date": "2026-05-21T06:00:00.000Z",
   "summary": "Price indices, percentage changes and weights for the different measures of consumer price inflation in the UK.",

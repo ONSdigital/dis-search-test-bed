@@ -177,4 +177,17 @@ make audit
 make check
 ```
 
-### Project Structure
+### Tooling
+
+We use some tooling for development that you will need to install.
+
+#### Linting
+
+For running lint checks against the JSON files you will need to run Node > v20 (or use the version in the .nvmrc file) and have [prettier](https://github.com/prettier/prettier) installed:
+
+```sh
+npm install -g prettier
+```
+
+For running lint checks against Go template files for JSON - we are currently experimenting with our own linting tool, [dis-json-template-linter](https://github.com/ONSdigital/dis-json-template-linter).
+

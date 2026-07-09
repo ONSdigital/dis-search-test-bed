@@ -7,12 +7,7 @@
   "cdid": "K2W7",
   "dataset_id": "DRSI",
   "edition": "current",
-  "keywords": [
-    "accountancy",
-    "accounting services",
-    "professional services",
-    "turnover"
-  ],
+  "keywords": ["accountancy", "accounting services", "professional services", "turnover"],
   "meta_description": "Annual turnover and activity data for accountancy services in the UK, by size and location.",
   "release_date": "2024-06-14T06:00:00.000Z",
   "summary": "Time series data for accountancy services activity, size and location in the UK.",
