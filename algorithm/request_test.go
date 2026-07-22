@@ -66,6 +66,22 @@ func TestGetSearchRequestBuilderUnweighted(t *testing.T) {
 	})
 }
 
+func TestGetRequestBuilder(t *testing.T) {
+	Convey("Given a RequestRegistry without a baseline builder", t, func() {
+		registry := NewRequestRegistry([]SearchAlgorithm{SearchAlgorithmUnweighted})
+
+		Convey("When GetRequestBuilder is called with an unknown algorithm", func() {
+			builder, err := registry.GetRequestBuilder(SearchAlgorithm("unknown"))
+
+			Convey("Then it should return an error indicating the baseline builder is not populated", func() {
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldEqual, "search algorithm baseline request builder not populated")
+				So(builder, ShouldBeNil)
+			})
+		})
+	})
+}
+
 func TestBuildRequest(t *testing.T) {
 	Convey("Given a baseline RequestBuilder", t, func() {
 		builder, err := NewSearchRequestBuilderBaseline()

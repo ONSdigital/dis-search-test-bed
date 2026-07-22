@@ -2,6 +2,7 @@ package algorithm
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ONSdigital/dp-elasticsearch/v4/client"
 )
@@ -66,7 +67,11 @@ func (f *RequestRegistry) GetRequestBuilder(algo SearchAlgorithm) (SearchRequest
 		return builder, nil
 	}
 	// If the algorithm is unknown, default to the baseline builder.
-	return f.builders[SearchAlgorithmBaseline], nil
+	if builder, exists := f.builders[SearchAlgorithmBaseline]; exists {
+		return builder, nil
+	}
+	// If the baseline builder is not found, return an error.
+	return nil, errors.New("search algorithm baseline request builder not populated")
 }
 
 // GetSearchRequestBuilder returns a RequestBuilder based on the
