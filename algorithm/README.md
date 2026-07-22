@@ -16,12 +16,15 @@ Due to the overlap in nomenclature, and for absolute clarity, this library defin
 - request
 - search
 - query
+- term
 
 A request is a singular request sent to ElasticSearch to retrieve information. This can be made up of many searches.
 
 A search is defined by the ElasticSearch client as `client.Search` and consists of a `Header` and a `Body`.
 
 A query is the body of the search and is formed of JSON partials. This *also* includes a 'query' attribute as well as others.
+
+A term is the user supplied query term with which to search by. For example "inflation" or "latest cpi statistics".
 
 ## Usage
 
