@@ -50,17 +50,17 @@ const (
 // SearchParameters holds the parameters for a search request.
 type SearchParameters struct {
 	Term           string
-	From           int // What is this? This is the offset
-	Size           int // What is this? This is the count
+	From           int // This is the offset for pagination
+	Size           int // This is the count for pagination
 	Types          []string
 	Index          string // This overrides the index
 	SortBy         SortBy
 	ReleasedAfter  Date
 	ReleasedBefore Date
-	Highlight      bool // What is this?
+	Highlight      bool // Whether to highlight search terms in the results
 	URIPrefix      string
 	Topic          []string
-	Now            string // What is this?
+	Now            string // The current timestamp - TODO: Find out the use case of this. Might be for releases.
 	DatasetIDs     []string
 	CDIDs          []string
 	URIs           []string
