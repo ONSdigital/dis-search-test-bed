@@ -10,6 +10,8 @@ import (
 	testElasticsearch "github.com/testcontainers/testcontainers-go/modules/elasticsearch"
 )
 
+const falseString = "false"
+
 // ElasticsearchOptions defines the configuration options for
 // the Elasticsearch container
 type ElasticsearchOptions struct {
@@ -63,9 +65,9 @@ func NewElasticSearchContainerWithOptions(esOptions ElasticsearchOptions) (*Elas
 		fmt.Sprintf("docker.elastic.co/elasticsearch/elasticsearch:%s", esOptions.Version),
 		testcontainers.WithEnv(map[string]string{
 			"discovery.type":         "single-node", // Skips cluster formation for single-node setup
-			"xpack.security.enabled": "false",       // Disable security for testing
-			"xpack.ml.enabled":       "false",       // Disable ML (controller still loads but faster)
-			"xpack.watcher.enabled":  "false",       // Disable watcher
+			"xpack.security.enabled": falseString,   // Disable security for testing
+			"xpack.ml.enabled":       falseString,   // Disable ML (controller still loads but faster)
+			"xpack.watcher.enabled":  falseString,   // Disable watcher
 		}),
 		testcontainers.WithName("elasticsearch-testbed"), // Explicit name for reuse
 	)

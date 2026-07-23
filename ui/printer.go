@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// Verbose is a global variable that controls the verbosity of the output
 var Verbose = false
 
 // Info prints an informational message
