@@ -8,7 +8,6 @@ import (
 
 	"github.com/testcontainers/testcontainers-go"
 	testElasticsearch "github.com/testcontainers/testcontainers-go/modules/elasticsearch"
-	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 // ElasticsearchOptions defines the configuration options for
@@ -69,11 +68,6 @@ func NewElasticSearchContainerWithOptions(esOptions ElasticsearchOptions) (*Elas
 			"xpack.watcher.enabled":  "false",       // Disable watcher
 		}),
 		testcontainers.WithName("elasticsearch-testbed"), // Explicit name for reuse
-		testcontainers.WithWaitStrategy(
-			wait.ForHTTP("/").
-				WithPort("9200/tcp").
-				WithStartupTimeout(esOptions.Timeout),
-		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start Elasticsearch container: %w", err)
