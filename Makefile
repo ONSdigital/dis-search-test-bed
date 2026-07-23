@@ -113,30 +113,9 @@ check: fmt vet audit lint test ## Run all checks
 ##################################
 ## Application Commands
 ##################################
-seed: build ## Seed Elasticsearch with sample data
-	@./$(BIN_DIR)/$(BINARY_NAME) seed
-
-generate: build ## Generate test index
-	@./$(BIN_DIR)/$(BINARY_NAME) generate
-
-query: build ## Run queries
-	@./$(BIN_DIR)/$(BINARY_NAME) query
-
-# Run comparisons (both by default)
-compare: build ## Run both historical and cross-query comparisons
-	@./$(BIN_DIR)/$(BINARY_NAME) compare --mode both
-
-# Just run historical comparison
-compare-hist: build ## Run historical comparison only
-	@./$(BIN_DIR)/$(BINARY_NAME) compare --mode historical
-
-# Just run cross-query comparison
-compare-cross: build ## Run cross-query comparison only
-	@./$(BIN_DIR)/$(BINARY_NAME) compare --mode cross-query
-
-# Run both comparisons
-compare-both: build ## Run both historical and cross-query comparisons
-	@./$(BIN_DIR)/$(BINARY_NAME) compare --mode both
+# Run comparisons
+compare: build 
+	@./$(BIN_DIR)/$(BINARY_NAME) compare
 
 ##########################
 ## Workflows
