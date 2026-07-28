@@ -36,8 +36,8 @@ type Codec[T any] struct {
 
 // JSONCodec returns a [Codec] that unmarshals each file as JSON into T and
 // marshals items back as indented JSON. Suitable for entities stored as JSON
-// objects (e.g. documents, judgements in the testset/ directory); the id is not used during decode
-// because it is carried inside the object.
+// objects (e.g. documents, judgements in the testset/ directory); the id is
+// not used during decode because it is carried inside the object.
 func JSONCodec[T any]() Codec[T] {
 	return Codec[T]{
 		Decode: func(_ string, data []byte) (T, error) {
@@ -60,7 +60,7 @@ func JSONCodec[T any]() Codec[T] {
 // read-only embedded snapshot and a writable on-disk directory:
 //
 //   - readFS is any [fs.FS]; an [embed.FS] gives a compiled-in, read-only
-//     snapshot (see [NewQueryStore]), while os.DirFS gives live reads from disk.
+//     snapshot (see [NewQueryStore]); os.DirFS gives live reads from disk.
 //   - writeDir is an os path that Put writes to. Because an embed.FS cannot be
 //     written to, Put targets this real directory instead; the newly written
 //     file is only picked up by an embed-backed reader on the next build.
