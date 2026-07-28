@@ -1,0 +1,9 @@
+package stream
+
+import "context"
+
+// Writer persists test-data items of type T to a store. It is storage neutral.
+type Writer[T any] interface {
+	// Put creates or replaces the item stored under id.
+	Put(ctx context.Context, id string, item T) error
+}

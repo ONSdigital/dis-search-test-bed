@@ -52,7 +52,7 @@ func (c *QueryBuilder) BuildQuery(ctx context.Context, params *SearchParameters)
 		return nil, errors.Wrapf(err, "creation of %s request from template failed", c.name)
 	}
 
-	minifiedJson, err := minifyJSON(doc.Bytes())
+	minifiedJson, err := MinifyJSON(doc.Bytes())
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to minify %s request", c.name)
 	}

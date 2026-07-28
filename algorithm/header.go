@@ -49,5 +49,5 @@ func (h *HeaderBuilder) BuildHeaderBytes(params HeaderParams) ([]byte, error) {
 		return nil, err
 	}
 
-	return minifyJSON(rawJSON)
+	return MinifyJSON(rawJSON)
 }
