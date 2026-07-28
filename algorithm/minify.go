@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 )
 
+// MinifyJSON returns rawJSON with insignificant whitespace removed.
 func MinifyJSON(rawJSON []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := json.Compact(&buf, rawJSON); err != nil {
