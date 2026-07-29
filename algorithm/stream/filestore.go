@@ -115,6 +115,7 @@ func (s *FileStore[T]) List(_ context.Context) ([]T, error) {
 
 	items := make([]T, 0, len(dirEntries))
 	for _, dirEntry := range dirEntries {
+		// skip directories and non-JSON files
 		if dirEntry.IsDir() || filepath.Ext(dirEntry.Name()) != ".json" {
 			continue
 		}
