@@ -53,13 +53,21 @@ func TestItemCodec(t *testing.T) {
 			})
 		})
 
-		Convey("When Encode is called with an Item", func() {
+		Convey("When Encode is called with an Item with a valid body", func() {
 			body := json.RawMessage(`{"size":10}`)
 			data, err := itemCodec.Encode(Item{Name: "n", Body: body})
 
 			Convey("Then it should return the body bytes verbatim", func() {
 				So(err, ShouldBeNil)
 				So(string(data), ShouldEqual, string(body))
+			})
+		})
+
+		Convey("When Encode is called with an Item with an invalid body", func() {
+			_, err := itemCodec.Encode(Item{Name: "n", Body: json.RawMessage("{not json")})
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldNotBeNil)
 			})
 		})
 	})

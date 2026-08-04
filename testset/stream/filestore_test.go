@@ -3,6 +3,7 @@ package stream
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -166,6 +167,18 @@ func TestFileStoreGet(t *testing.T) {
 				So(err.Error(), ShouldContainSubstring, "decode")
 			})
 		})
+
+		Convey("When Get is called with an invalid id", func() {
+			// "sub/c" maps to dir/sub/c.json, which exists; rejecting it proves
+			// the id check runs before any read and blocks path traversal.
+			for _, id := range []string{"", ".", "..", "a/b", `a\b`, "sub/c"} {
+				Convey(fmt.Sprintf("Then id %q should be rejected before any read", id), func() {
+					_, err := store.Get(context.Background(), id)
+					So(err, ShouldNotBeNil)
+					So(err.Error(), ShouldContainSubstring, "invalid item id")
+				})
+			}
+		})
 	})
 }
 
@@ -196,6 +209,18 @@ func TestFileStorePut(t *testing.T) {
 				So(getErr, ShouldBeNil)
 				So(got, ShouldResemble, doc)
 			})
+		})
+
+		Convey("When Put is called with an invalid id", func() {
+			// A writable store is required: the read-only guard precedes the id
+			// check, so the validation is only reachable here.
+			for _, id := range []string{"", ".", "..", "a/b", `a\b`} {
+				Convey(fmt.Sprintf("Then id %q should be rejected", id), func() {
+					err := store.Put(context.Background(), id, doc)
+					So(err, ShouldNotBeNil)
+					So(err.Error(), ShouldContainSubstring, "invalid item id")
+				})
+			}
 		})
 	})
 
