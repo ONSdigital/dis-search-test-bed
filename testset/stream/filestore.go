@@ -35,7 +35,7 @@ type Codec[T any] struct {
 	Encode func(item T) ([]byte, error)
 }
 
-// JSONCodec returns a [Codec] that unmarshals each file as JSON into T and
+// JSONCodec returns a [Codec] that unmarshalls each file as JSON into T and
 // marshals items back as indented JSON. Suitable for entities stored as JSON
 // objects (e.g. documents, judgements in the testset/ directory); the id is
 // not used during decode because it is carried inside the object.
