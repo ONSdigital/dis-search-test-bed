@@ -153,6 +153,10 @@ func (s *FileStore[T]) Put(_ context.Context, id string, item T) error {
 		return errors.Errorf("store is read-only: cannot write item %q", id)
 	}
 
+	if id == "" || id == "." || id == ".." || strings.ContainsAny(id, `/\\`) {
+		return errors.Errorf("invalid item id %q", id)
+	}
+
 	fileBytes, err := s.codec.Encode(item)
 	if err != nil {
 		return errors.Wrapf(err, "failed to encode item %q", id)
