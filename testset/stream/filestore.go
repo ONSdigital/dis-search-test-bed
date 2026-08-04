@@ -142,12 +142,12 @@ func (s *FileStore[T]) List(_ context.Context) ([]T, error) {
 	return items, nil
 }
 
-// Put creates or replaces the item stored under id by encoding it and writing
-// the bytes to writeDir/<id>.json.
+// Put creates or replaces the item stored under id by encoding it and
+// writing the bytes to writeDir/<id>.json.
 //
 // Put writes to the os filesystem. When the store's reads are served from an
-// embed.FS (see [NewDocumentStore]) the written file will not appear in Get/List
-// results until it is embedded on the next build.
+// embed.FS (see [NewDocumentStore]) the written file will not appear in
+// Get/List results until it is embedded on the next build.
 func (s *FileStore[T]) Put(_ context.Context, id string, item T) error {
 	if s.writeDir == "" {
 		return errors.Errorf("store is read-only: cannot write item %q", id)

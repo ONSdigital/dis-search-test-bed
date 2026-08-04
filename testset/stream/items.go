@@ -9,35 +9,40 @@ import (
 )
 
 const (
-	// documentWriteDir is where [NewDocumentStore]'s writer persists document bodies. Reads
-	// come from the algorithm package's compiled-in snapshot; writes go to the
-	// on-disk copy of the same directory, resolved relative to the working
-	// directory (so callers should run from the module root). A written file is
-	// only visible to Get/List once re-embedded on the next build.
+	// documentWriteDir is where [NewDocumentStore]'s writer persists document
+	// bodies. Reads come from the algorithm package's compiled-in snapshot;
+	// writes go to the on-disk copy of the same directory, resolved relative to
+	// the working directory (so callers should run from the module root). A
+	// written file is only visible to Get/List once re-embedded on the next
+	// build.
 	documentWriteDir = "testset/" + testset.DocumentFixturesDir
-	// judgementWriteDir is where [NewJudgementStore]'s writer persists judgement bodies.
+	// judgementWriteDir is where [NewJudgementStore]'s writer persists
+	// judgement bodies.
 	judgementWriteDir = "testset/" + testset.JudgementFixturesDir
 	// termWriteDir is where [NewTermStore]'s writer persists term bodies.
 	termWriteDir = "testset/" + testset.TermFixturesDir
 )
 
-// Item is one rendered Elasticsearch document/judgement/term body from the test-data store. It
-// is the "document/judgement/term composite" the search algorithms emit and that the fixtures in
-// testset/documents/judgements/terms capture.
+// Item is one rendered Elasticsearch document/judgement/term body from the
+// test-data store. It is the "document/judgement/term composite" the search
+// algorithms emit and that the fixtures in testset/documents/judgements/terms
+// capture.
 //
-// A document/judgement/term file is its body, so the item is modelled as the raw JSON keyed by
-// name rather than a typed struct — matching how the codebase treats items for indexing elsewhere ([]byte).
+// A document/judgement/term file is its body, so the item is modelled as the
+// raw JSON keyed by name rather than a typed struct, matching how the codebase
+// treats items for indexing elsewhere ([]byte).
 type Item struct {
-	// Name is the document/judgement/term's identifier: the file name without the .json
-	// extension (e.g. "baseline_term_employment", "browse").
+	// Name is the document/judgement/term's identifier: the file name without
+	// the .json extension (e.g. "baseline_term_employment", "browse").
 	Name string `json:"name"`
 	// Body is the full Elasticsearch _search body as raw JSON.
 	Body json.RawMessage `json:"body"`
 }
 
-// itemCodec maps a document/judgement/term file's bytes directly to/from [Item.Body], taking
-// the id (filename) as [Item.Name]. Unlike [JSONCodec] it does not wrap the
-// body in an enclosing object: the file content is the body verbatim.
+// itemCodec maps a document/judgement/term file's bytes directly to/from
+// [Item.Body], taking the id (filename) as [Item.Name]. Unlike [JSONCodec] it
+// does not wrap the body in an enclosing object: the file content is the body
+// verbatim.
 var itemCodec = Codec[Item]{
 	Decode: func(id string, data []byte) (Item, error) {
 		if !json.Valid(data) {
