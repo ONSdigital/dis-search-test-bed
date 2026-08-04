@@ -70,7 +70,7 @@ func JSONCodec[T any]() Codec[T] {
 // Stream[T] interface.
 type FileStore[T any] struct {
 	readFS   fs.FS    // source for Get/List; paths are relative to its root
-	readDir  string   // sub-directory within readFS to read from
+	readDir  string   // subdirectory within readFS to read from
 	writeDir string   // os directory Put writes to; empty disables writes
 	codec    Codec[T] // item <-> file-bytes translation
 }
