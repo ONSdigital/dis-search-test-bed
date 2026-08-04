@@ -4,57 +4,58 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/ONSdigital/dis-search-test-bed/algorithm"
+	"github.com/ONSdigital/dis-search-test-bed/testset"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// Compile-time assurance that the query store satisfies the full Stream
-// contract for the Query type.
+// Compile-time assurance that the file-backed store satisfies the full Stream
+// contract for the Item type.
 var _ Stream[Item] = (*FileStore[Item])(nil)
 
-func TestQueryCodec(t *testing.T) {
-	Convey("Given the queryCodec", t, func() {
+func TestItemCodec(t *testing.T) {
+	Convey("Given the itemCodec", t, func() {
 		Convey("When Decode is called with an id and body bytes", func() {
 			body := []byte(`{"query":{"match_all":{}}}`)
-			q, err := queryCodec.Decode("browse", body)
+			item, err := itemCodec.Decode("browse", body)
 
 			Convey("Then it should set Name from the id and Body from the bytes", func() {
 				So(err, ShouldBeNil)
-				So(q.Name, ShouldEqual, "browse")
-				So(string(q.Body), ShouldEqual, string(body))
+				So(item.Name, ShouldEqual, "browse")
+				So(string(item.Body), ShouldEqual, string(body))
 			})
 
 			Convey("Then mutating the source bytes should not affect the stored Body", func() {
 				So(err, ShouldBeNil)
 				body[0] = 'X' // corrupt the caller's slice after decode
-				So(string(q.Body), ShouldEqual, `{"query":{"match_all":{}}}`)
+				So(string(item.Body), ShouldEqual, `{"query":{"match_all":{}}}`)
 			})
 		})
 
 		Convey("When Decode is called with indented JSON", func() {
-			q, err := queryCodec.Decode("browse", []byte("{\n  \"size\": 10\n}"))
+			item, err := itemCodec.Decode("browse", []byte("{\n  \"size\": 10\n}"))
 
 			Convey("Then the Body should be minified", func() {
 				So(err, ShouldBeNil)
-				So(string(q.Body), ShouldEqual, `{"size":10}`)
+				So(string(item.Body), ShouldEqual, `{"size":10}`)
 			})
 		})
 
 		Convey("When Decode is called with invalid JSON", func() {
-			_, err := queryCodec.Decode("bad", []byte("{not json"))
+			_, err := itemCodec.Decode("bad", []byte("{not json"))
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldNotBeNil)
 			})
 		})
 
-		Convey("When Encode is called with a Query", func() {
+		Convey("When Encode is called with an Item", func() {
 			body := json.RawMessage(`{"size":10}`)
-			data, err := queryCodec.Encode(Item{Name: "n", Body: body})
+			data, err := itemCodec.Encode(Item{Name: "n", Body: body})
 
 			Convey("Then it should return the body bytes verbatim", func() {
 				So(err, ShouldBeNil)
@@ -64,70 +65,107 @@ func TestQueryCodec(t *testing.T) {
 	})
 }
 
-func TestNewQueryStore(t *testing.T) {
-	expectedNames := []string{
-		"baseline_term_employment",
-		"browse",
-		"count_content_type_employment",
-		"count_distinct_employment",
-		"count_topic_items_employment",
-		"unweighted_term_employment",
+func TestStores(t *testing.T) {
+	cases := []struct {
+		name          string
+		store         Stream[Item]
+		expectedNames []string
+		getName       string
+	}{
+		{
+			name:  "document",
+			store: NewDocumentStore(),
+			expectedNames: []string{
+				"accountancy-services-timeseries",
+				"cpi-latest",
+				"growth-dataset",
+			},
+			getName: "cpi-latest",
+		},
+		{
+			name:  "judgement",
+			store: NewJudgementStore(),
+			expectedNames: []string{
+				"cpi-latest",
+				"data",
+				"growth-figures",
+				"stat",
+			},
+			getName: "cpi-latest",
+		},
+		{
+			name:  "term",
+			store: NewTermStore(),
+			expectedNames: []string{
+				"cpi-latest",
+				"data",
+				"growth-figures",
+				"stat",
+			},
+			getName: "cpi-latest",
+		},
 	}
 
-	Convey("Given a query store over the embedded fixtures", t, func() {
-		store := NewQueryStore()
+	for _, tc := range cases {
+		Convey(fmt.Sprintf("Given a %s store over the embedded fixtures", tc.name), t, func() {
+			store := tc.store
 
-		Convey("When List is called", func() {
-			queries, err := store.List(context.Background())
+			Convey("When List is called", func() {
+				items, err := store.List(context.Background())
 
-			Convey("Then it should return all six fixtures as valid, named query bodies", func() {
-				So(err, ShouldBeNil)
-				So(queries, ShouldHaveLength, len(expectedNames))
+				Convey("Then it should return all fixtures as valid, named bodies", func() {
+					So(err, ShouldBeNil)
+					So(items, ShouldHaveLength, len(tc.expectedNames))
 
-				names := map[string]bool{}
-				for _, q := range queries {
-					So(q.Name, ShouldNotBeEmpty)
-					So(json.Valid(q.Body), ShouldBeTrue)
-					// Fixtures are stored indented on disk; the loaded body is
-					// minified, so it must contain no newlines.
-					So(bytes.Contains(q.Body, []byte("\n")), ShouldBeFalse)
-					names[q.Name] = true
-				}
-
-				Convey("And the names should match the fixture file base names", func() {
-					for _, name := range expectedNames {
-						So(names[name], ShouldBeTrue)
+					names := map[string]bool{}
+					for _, item := range items {
+						So(item.Name, ShouldNotBeEmpty)
+						So(json.Valid(item.Body), ShouldBeTrue)
+						// Fixtures are stored indented on disk; the loaded body is
+						// minified, so it must contain no newlines.
+						So(bytes.Contains(item.Body, []byte("\n")), ShouldBeFalse)
+						names[item.Name] = true
 					}
+
+					Convey("And the names should match the fixture file base names", func() {
+						for _, name := range tc.expectedNames {
+							So(names[name], ShouldBeTrue)
+						}
+					})
+				})
+			})
+
+			Convey("When Get is called with an existing name", func() {
+				item, err := store.Get(context.Background(), tc.getName)
+
+				Convey("Then it should return that item with a valid body", func() {
+					So(err, ShouldBeNil)
+					So(item.Name, ShouldEqual, tc.getName)
+					So(json.Valid(item.Body), ShouldBeTrue)
+				})
+			})
+
+			Convey("When Get is called with a name that does not exist", func() {
+				_, err := store.Get(context.Background(), "does-not-exist")
+
+				Convey("Then it should return an error", func() {
+					So(err, ShouldNotBeNil)
 				})
 			})
 		})
-
-		Convey("When Get is called with an existing query name", func() {
-			q, err := store.Get(context.Background(), "browse")
-
-			Convey("Then it should return that query with a valid body", func() {
-				So(err, ShouldBeNil)
-				So(q.Name, ShouldEqual, "browse")
-				So(json.Valid(q.Body), ShouldBeTrue)
-			})
-		})
-
-		Convey("When Get is called with a name that does not exist", func() {
-			_, err := store.Get(context.Background(), "does-not-exist")
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldNotBeNil)
-			})
-		})
-	})
+	}
 }
 
-func TestNewQueryStoreWriteDir(t *testing.T) {
-	Convey("Given a query store whose writes are redirected to a temp dir", t, func() {
-		dir := t.TempDir()
-		store := NewQueryStoreWithWriteDir(dir)
+func TestStoreWriteDir(t *testing.T) {
+	// documents/ holds three fixtures; the embed-backed reads must not change
+	// when Put is redirected to a temp dir.
+	const expectedDocumentCount = 3
 
-		Convey("When a query is Put", func() {
+	Convey("Given a document store whose writes are redirected to a temp dir", t, func() {
+		dir := t.TempDir()
+		store := NewDocumentStoreWithWriteDir(dir)
+
+		Convey("When an item is Put", func() {
 			err := store.Put(context.Background(), "probe",
 				Item{Name: "probe", Body: json.RawMessage(`{"query":{"match_all":{}}}`)})
 
@@ -145,46 +183,46 @@ func TestNewQueryStoreWriteDir(t *testing.T) {
 		})
 
 		Convey("When List is called", func() {
-			queries, err := store.List(context.Background())
+			items, err := store.List(context.Background())
 
-			Convey("Then it should still return the six embedded fixtures", func() {
+			Convey("Then it should still return the embedded fixtures", func() {
 				So(err, ShouldBeNil)
-				So(queries, ShouldHaveLength, 6)
+				So(items, ShouldHaveLength, expectedDocumentCount)
 			})
 		})
 	})
 }
 
-func TestNewQueryFileStore(t *testing.T) {
-	Convey("Given an on-disk query store over a temp directory", t, func() {
+func TestItemFileStore(t *testing.T) {
+	Convey("Given an on-disk item store over a temp directory", t, func() {
 		dir := t.TempDir()
-		store := NewQueryFileStore(dir)
-		query := Item{Name: "custom_probe", Body: json.RawMessage(`{"query":{"match_all":{}}}`)}
+		store := NewItemFileStore(dir)
+		item := Item{Name: "custom_probe", Body: json.RawMessage(`{"query":{"match_all":{}}}`)}
 
-		Convey("When a query is written then read back", func() {
-			putErr := store.Put(context.Background(), query.Name, query)
-			got, getErr := store.Get(context.Background(), query.Name)
+		Convey("When an item is written then read back", func() {
+			putErr := store.Put(context.Background(), item.Name, item)
+			got, getErr := store.Get(context.Background(), item.Name)
 
 			Convey("Then it should round-trip on Name and Body", func() {
 				So(putErr, ShouldBeNil)
 				So(getErr, ShouldBeNil)
-				So(got.Name, ShouldEqual, query.Name)
-				So(string(got.Body), ShouldEqual, string(query.Body))
+				So(got.Name, ShouldEqual, item.Name)
+				So(string(got.Body), ShouldEqual, string(item.Body))
 			})
 
 			Convey("Then the written file content should equal the body bytes", func() {
 				So(putErr, ShouldBeNil)
 				onDisk, readErr := os.ReadFile(filepath.Join(dir, "custom_probe.json"))
 				So(readErr, ShouldBeNil)
-				So(string(onDisk), ShouldEqual, string(query.Body))
+				So(string(onDisk), ShouldEqual, string(item.Body))
 			})
 
-			Convey("Then List should include the written query", func() {
+			Convey("Then List should include the written item", func() {
 				So(putErr, ShouldBeNil)
-				queries, listErr := store.List(context.Background())
+				items, listErr := store.List(context.Background())
 				So(listErr, ShouldBeNil)
-				So(queries, ShouldHaveLength, 1)
-				So(queries[0].Name, ShouldEqual, query.Name)
+				So(items, ShouldHaveLength, 1)
+				So(items[0].Name, ShouldEqual, item.Name)
 			})
 		})
 	})
@@ -192,28 +230,28 @@ func TestNewQueryFileStore(t *testing.T) {
 
 // --- test-only store constructors ---------------------------------------
 // These variants exist purely to exercise the write path without touching the
-// real algorithm/testdata/queries fixtures, so they live with the tests rather
-// than in the package's public surface. NewQueryStore is the production entry
-// point and stays in query.go.
+// real testset fixtures, so they live with the tests rather than in the
+// package's public surface. NewDocumentStore/NewJudgementStore/NewTermStore are
+// the production entry points and stay in items.go.
 //-------------------------------------
 
-// NewQueryStoreWithWriteDir is like NewQueryStore - reads still come from the
-// embedded fixtures - but Put writes to writeDir instead of the on-disk
-// fixtures. Pass t.TempDir() so writes never touch algorithm/testdata/queries.
-// Because reads remain served from the embed, a query written here lands on
-// disk but is not visible to this store's Get or List; use NewQueryFileStore
-// when a write must round-trip within a run.
-func NewQueryStoreWithWriteDir(writeDir string) *FileStore[Item] {
+// NewDocumentStoreWithWriteDir is like NewDocumentStore - reads still come from
+// the embedded fixtures - but Put writes to writeDir instead of the on-disk
+// fixtures. Pass t.TempDir() so writes never touch testset/documents. Because
+// reads remain served from the embed, an item written here lands on disk but is
+// not visible to this store's Get or List; use NewItemFileStore when a write
+// must round-trip within a run.
+func NewDocumentStoreWithWriteDir(writeDir string) *FileStore[Item] {
 	return NewFileStore(
-		algorithm.QueryFixturesFS(),
-		algorithm.QueryFixturesDir,
+		testset.DocumentFixturesFS(),
+		testset.DocumentFixturesDir,
 		writeDir,
-		queryCodec,
+		itemCodec,
 	)
 }
 
-// NewQueryFileStore returns a Query store that both reads and writes the on-disk
+// NewItemFileStore returns an item store that both reads and writes the on-disk
 // directory dir (no embedding), so Put is immediately visible to Get and List.
-func NewQueryFileStore(dir string) *FileStore[Item] {
-	return NewFileStore(os.DirFS(dir), ".", dir, queryCodec)
+func NewItemFileStore(dir string) *FileStore[Item] {
+	return NewFileStore(os.DirFS(dir), ".", dir, itemCodec)
 }
