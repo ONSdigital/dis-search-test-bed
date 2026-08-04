@@ -14,7 +14,7 @@ import (
 
 // Compile-time assurance that the query store satisfies the full Stream
 // contract for the Query type.
-var _ Stream[Query] = (*FileStore[Query])(nil)
+var _ Stream[Item] = (*FileStore[Item])(nil)
 
 func TestQueryCodec(t *testing.T) {
 	Convey("Given the queryCodec", t, func() {
@@ -54,7 +54,7 @@ func TestQueryCodec(t *testing.T) {
 
 		Convey("When Encode is called with a Query", func() {
 			body := json.RawMessage(`{"size":10}`)
-			data, err := queryCodec.Encode(Query{Name: "n", Body: body})
+			data, err := queryCodec.Encode(Item{Name: "n", Body: body})
 
 			Convey("Then it should return the body bytes verbatim", func() {
 				So(err, ShouldBeNil)
@@ -129,7 +129,7 @@ func TestNewQueryStoreWriteDir(t *testing.T) {
 
 		Convey("When a query is Put", func() {
 			err := store.Put(context.Background(), "probe",
-				Query{Name: "probe", Body: json.RawMessage(`{"query":{"match_all":{}}}`)})
+				Item{Name: "probe", Body: json.RawMessage(`{"query":{"match_all":{}}}`)})
 
 			Convey("Then the file should land under the temp dir, not the fixtures", func() {
 				So(err, ShouldBeNil)
@@ -159,7 +159,7 @@ func TestNewQueryFileStore(t *testing.T) {
 	Convey("Given an on-disk query store over a temp directory", t, func() {
 		dir := t.TempDir()
 		store := NewQueryFileStore(dir)
-		query := Query{Name: "custom_probe", Body: json.RawMessage(`{"query":{"match_all":{}}}`)}
+		query := Item{Name: "custom_probe", Body: json.RawMessage(`{"query":{"match_all":{}}}`)}
 
 		Convey("When a query is written then read back", func() {
 			putErr := store.Put(context.Background(), query.Name, query)
@@ -203,7 +203,7 @@ func TestNewQueryFileStore(t *testing.T) {
 // Because reads remain served from the embed, a query written here lands on
 // disk but is not visible to this store's Get or List; use NewQueryFileStore
 // when a write must round-trip within a run.
-func NewQueryStoreWithWriteDir(writeDir string) *FileStore[Query] {
+func NewQueryStoreWithWriteDir(writeDir string) *FileStore[Item] {
 	return NewFileStore(
 		algorithm.QueryFixturesFS(),
 		algorithm.QueryFixturesDir,
@@ -214,6 +214,6 @@ func NewQueryStoreWithWriteDir(writeDir string) *FileStore[Query] {
 
 // NewQueryFileStore returns a Query store that both reads and writes the on-disk
 // directory dir (no embedding), so Put is immediately visible to Get and List.
-func NewQueryFileStore(dir string) *FileStore[Query] {
+func NewQueryFileStore(dir string) *FileStore[Item] {
 	return NewFileStore(os.DirFS(dir), ".", dir, queryCodec)
 }
