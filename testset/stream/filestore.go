@@ -94,6 +94,10 @@ func NewFileStore[T any](readFS fs.FS, readDir, writeDir string, codec Codec[T])
 func (s *FileStore[T]) Get(_ context.Context, id string) (T, error) {
 	var zero T
 
+	if id == "" || id == "." || id == ".." || strings.ContainsAny(id, `/\\`) {
+		return zero, errors.Errorf("invalid item id %q", id)
+	}
+
 	fileBytes, err := fs.ReadFile(s.readFS, path.Join(s.readDir, id+".json"))
 	if err != nil {
 		return zero, errors.Wrapf(err, "failed to read item %q", id)
