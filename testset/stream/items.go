@@ -21,15 +21,14 @@ const (
 	termWriteDir = "testset/" + testset.TermFixturesDir
 )
 
-// Item is one rendered Elasticsearch query body from the test-data store. It
-// is the "query composite" the search algorithms emit and that the fixtures in
-// algorithm/testdata/queries capture.
+// Item is one rendered Elasticsearch document/judgement/term body from the test-data store. It
+// is the "document/judgement/term composite" the search algorithms emit and that the fixtures in
+// testset/documents/judgements/terms capture.
 //
-// A query file is its body, so the item is modelled as the raw JSON keyed by
-// name rather than a typed struct — matching how the codebase treats query
-// bodies elsewhere ([]byte from BuildQuery / client.Search.Item).
+// A document/judgement/term file is its body, so the item is modelled as the raw JSON keyed by
+// name rather than a typed struct — matching how the codebase treats items for indexing elsewhere ([]byte).
 type Item struct {
-	// Name is the query's identifier: the file name without the .json
+	// Name is the document/judgement/term's identifier: the file name without the .json
 	// extension (e.g. "baseline_term_employment", "browse").
 	Name string `json:"name"`
 	// Body is the full Elasticsearch _search body as raw JSON.
@@ -53,6 +52,9 @@ var itemCodec = Codec[Item]{
 		return Item{Name: id, Body: body}, nil
 	},
 	Encode: func(q Item) ([]byte, error) {
+		if !json.Valid(q.Body) {
+			return nil, errors.Errorf("invalid JSON in document/judgement/term body %q", q.Name)
+		}
 		return q.Body, nil
 	},
 }
