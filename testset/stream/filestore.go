@@ -22,10 +22,11 @@ const (
 // Codec maps a stored item of type T to and from the raw bytes of its file.
 //
 // It lets a single [FileStore] serve entities whose file representation
-// differs: a query file *is* its Elasticsearch body and its id is the filename
-// (see [queryCodec]), whereas a document or judgement file is a JSON object
-// (see [JSONCodec]). The store owns filesystem iteration and naming; the codec
-// owns the bytes<->item translation.
+// differs: a document, judgement or term file *is* its body, stored verbatim
+// with its id taken from the filename (see [itemCodec]), whereas an entity
+// persisted as a typed JSON object is decoded into T with its id carried inside
+// the object (see [JSONCodec]). The store owns filesystem iteration and naming;
+// the codec owns the bytes<->item translation.
 type Codec[T any] struct {
 	// Decode builds an item from its id (the filename without the .json
 	// extension) and the raw file bytes.
@@ -60,7 +61,7 @@ func JSONCodec[T any]() Codec[T] {
 // read-only embedded snapshot and a writable on-disk directory:
 //
 //   - readFS is any [fs.FS]; an [embed.FS] gives a compiled-in, read-only
-//     snapshot (see [NewQueryStore]); os.DirFS gives live reads from disk.
+//     snapshot (see [NewDocumentStore]); os.DirFS gives live reads from disk.
 //   - writeDir is an os path that Put writes to. Because an embed.FS cannot be
 //     written to, Put targets this real directory instead; the newly written
 //     file is only picked up by an embed-backed reader on the next build.
@@ -141,7 +142,7 @@ func (s *FileStore[T]) List(_ context.Context) ([]T, error) {
 // the bytes to writeDir/<id>.json.
 //
 // Put writes to the os filesystem. When the store's reads are served from an
-// embed.FS (see [NewQueryStore]) the written file will not appear in Get/List
+// embed.FS (see [NewDocumentStore]) the written file will not appear in Get/List
 // results until it is embedded on the next build.
 func (s *FileStore[T]) Put(_ context.Context, id string, item T) error {
 	if s.writeDir == "" {
