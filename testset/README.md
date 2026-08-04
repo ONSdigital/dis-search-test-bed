@@ -5,8 +5,8 @@ Data for evaluating our search algorithms with **NDCG@K**.
 This directory stores three things:
 
 1. **Documents** — the test data (pages that could be returned by a search).
-2. **Queries** — the searches we want to evaluate.
-3. **Judgements** — the human-assigned relevance of a document *for a given query*
+2. **Terms** — the searches we want to evaluate.
+3. **Judgements** — the human-assigned relevance of a document *for a given term*
    (this will be used to score the algorithm's performance against the Idealised Discounted Cumulative Gain @ K - IDCG@K).
 
 Relevance is graded on a fixed **0–4** scale (NDCG graded relevance: 0 = not
@@ -20,13 +20,13 @@ testset/
     cpi-latest.json                       # one file per document; filename == document id
     accountancy-services-timeseries.json
     growth-dataset.json
-  queries/
-    cpi-latest.json                       # one file per query; filename == query id
+  terms/
+    cpi-latest.json                       # one file per term; filename == term id
     data.json
     growth-figures.json
     stat.json
   judgements/
-    cpi-latest.json                       # one file per query: that query's full answer key
+    cpi-latest.json                       # one file per term: that term's full answer key
     data.json
     growth-figures.json
     stat.json
@@ -36,25 +36,25 @@ testset/
 
 ## How the three structures relate
 
-`Judgement` is the link between a `Query` and a `Document`. Relevance is a property
+`Judgement` is the link between a `Term` and a `Document`. Relevance is a property
 of the **pair**, not of either side alone — so it lives on the judgement.
 
 ```
-  QUERY  ──< judged by >──  JUDGEMENT  ──< about >──  DOCUMENT
+  TERM   ──< judged by >──  JUDGEMENT  ──< about >──  DOCUMENT
   (what      query_id ────────┘    └──────── doc_id    (what was
    we                                                    returned)
    searched)
 ```
 
-- A **query** can have many judgements (one per document scored for it).
-- A **document** can appear in many queries' judgements (it's a shared pool —
+- A **term** can have many judgements (one per document scored for it).
+- A **document** can appear in many terms' judgements (it's a shared pool —
   stored once, referenced by id).
-- A **judgement** points at exactly one query (`query_id`) and one document
+- A **judgement** points at exactly one term (`query_id`) and one document
   (`doc_id`) and carries the `relevance` grade.
 
 Join keys:
 - `judgements[*].doc_id`   → `documents[*].id`
-- a judgement file's `query_id` → `queries[*].id`
+- a judgement file's `query_id` → `terms[*].id`
 
 ### What each file shows
 
@@ -88,7 +88,7 @@ the prod index itself identifies items by `uri`.
 }
 ```
 
-**`queries/<id>.json`** — one search we evaluate. Describes the user's intent.
+**`terms/<id>.json`** — one search we evaluate. Describes the user's intent.
 `id` is a plain slug used as the filename and as the join key. `query` is the
 raw search term(s) as a user would type them into `ons.gov.uk/search`.
 ```json
@@ -99,7 +99,7 @@ raw search term(s) as a user would type them into `ons.gov.uk/search`.
 }
 ```
 
-**`judgements/<query>.json`** — one query's answer key: which documents are
+**`judgements/<term>.json`** — one term's answer key: which documents are
 relevant, and how much (0 = not relevant … 4 = perfect match). The file is keyed
 by `query_id`; each entry references a document and its grade.
 ```json
@@ -123,14 +123,14 @@ by `query_id`; each entry references a document and its grade.
 3. Adding a document does nothing on its own, it only matters once a judgement
    references it.
 
-### Add a query
-1. Create `queries/<id>.json` with `id`, `query`, `description`. `query` is the
+### Add a term
+1. Create `terms/<id>.json` with `id`, `query`, `description`. `query` is the
    raw search term(s) (e.g. `cpi latest`); `id` is a plain slug.
-2. Create the matching `judgements/<id>.json` (see below). A query with no
+2. Create the matching `judgements/<id>.json` (see below). A term with no
    judgements cannot be scored.
 
 ### Add / change a judgement
-1. Open the query's file in `judgements/` (or create it: `{ "query_id": "...", "judgements": [] }`).
+1. Open the term's file in `judgements/` (or create it: `{ "query_id": "...", "judgements": [] }`).
 2. Add `{ "doc_id": "<existing document id>", "relevance": <0-4> }`.
 3. The `doc_id` **must** already exist in `documents/` — no dangling references.
 4. To re-score, edit the `relevance` value in place.
@@ -139,16 +139,16 @@ by `query_id`; each entry references a document and its grade.
 
 The assembled set must pass these checks on load:
 
-- **filename == id** for documents and queries.
-- **No duplicate ids** within `documents/` or `queries/`.
+- **filename == id** for documents and terms.
+- **No duplicate ids** within `documents/` or `terms/`.
 - **No dangling references**: every `doc_id` resolves to a `documents/` file, and
-  every judgement file's `query_id` resolves to a `queries/` file.
+  every judgement file's `query_id` resolves to a `terms/` file.
 - **In-range grades**: every `relevance` is an integer from 0 to 4.
 
 ## Why split it this way
 
 One file per entity keeps future changes small and reviewable, avoids merge conflicts on a
 single large blob, and maps 1:1 to the data model: a loader iterates over the three
-directories and reassembles them into `documents`, `queries`, and `judgements`
-arrays. Judgements are grouped per query because that's the unit NDCG iterates over
+directories and reassembles them into `documents`, `terms`, and `judgements`
+arrays. Judgements are grouped per term because that's the unit NDCG iterates over
 and the unit we add most often.
