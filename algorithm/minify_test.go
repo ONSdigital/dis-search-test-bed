@@ -8,9 +8,9 @@ import (
 
 func TestMinifyJSON(t *testing.T) {
 	Convey("Given a JSON byte slice", t, func() {
-		Convey("When minifyJSON is called with valid JSON", func() {
+		Convey("When MinifyJSON is called with valid JSON", func() {
 			input := []byte(`{ "index": "ons" }`)
-			result, err := minifyJSON(input)
+			result, err := MinifyJSON(input)
 
 			Convey("Then it should return minified JSON with no error", func() {
 				So(err, ShouldBeNil)
@@ -18,9 +18,9 @@ func TestMinifyJSON(t *testing.T) {
 			})
 		})
 
-		Convey("When minifyJSON is called with already minified JSON", func() {
+		Convey("When MinifyJSON is called with already minified JSON", func() {
 			input := []byte(`{"index":"ons"}`)
-			result, err := minifyJSON(input)
+			result, err := MinifyJSON(input)
 
 			Convey("Then it should return the same JSON with no error", func() {
 				So(err, ShouldBeNil)
@@ -28,7 +28,7 @@ func TestMinifyJSON(t *testing.T) {
 			})
 		})
 
-		Convey("When minifyJSON is called with deeply nested JSON", func() {
+		Convey("When MinifyJSON is called with deeply nested JSON", func() {
 			input := []byte(`{
 				"query": {
 					"bool": {
@@ -38,7 +38,7 @@ func TestMinifyJSON(t *testing.T) {
 					}
 				}
 			}`)
-			result, err := minifyJSON(input)
+			result, err := MinifyJSON(input)
 
 			Convey("Then it should return minified JSON with no error", func() {
 				So(err, ShouldBeNil)
@@ -46,9 +46,9 @@ func TestMinifyJSON(t *testing.T) {
 			})
 		})
 
-		Convey("When minifyJSON is called with invalid JSON", func() {
+		Convey("When MinifyJSON is called with invalid JSON", func() {
 			input := []byte(`{ invalid }`)
-			result, err := minifyJSON(input)
+			result, err := MinifyJSON(input)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldNotBeNil)
