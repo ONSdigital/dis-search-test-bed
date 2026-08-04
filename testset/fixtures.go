@@ -16,9 +16,9 @@ var (
 
 // Directory constants for the testset items.
 const (
-	documentFixturesDir  = "documents"
-	judgementFixturesDir = "judgements"
-	termFixturesDir      = "terms"
+	DocumentFixturesDir  = "documents"
+	JudgementFixturesDir = "judgements"
+	TermFixturesDir      = "terms"
 )
 
 // DocumentFixturesFS returns the embedded, read-only filesystem holding the

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/ONSdigital/dis-search-test-bed/algorithm"
+	"github.com/ONSdigital/dis-search-test-bed/testset"
 	"github.com/pkg/errors"
 )
 
@@ -12,7 +13,7 @@ import (
 // on-disk copy of the same directory, resolved relative to the working
 // directory (so callers should run from the module root). A written file is
 // only visible to Get/List once re-embedded on the next build.
-const queryWriteDir = "algorithm/" + algorithm.QueryFixturesDir
+const queryWriteDir = "testset/" + testset.DocumentFixturesDir
 
 // Query is one rendered Elasticsearch query body from the test-data store. It
 // is the "query composite" the search algorithms emit and that the fixtures in

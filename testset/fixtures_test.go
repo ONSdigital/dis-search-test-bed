@@ -21,7 +21,7 @@ func TestFixturesFS(t *testing.T) {
 		{
 			name: "document",
 			fsys: DocumentFixturesFS(),
-			dir:  documentFixturesDir,
+			dir:  DocumentFixturesDir,
 			expectedFixtures: []string{
 				"accountancy-services-timeseries",
 				"cpi-latest",
@@ -31,7 +31,7 @@ func TestFixturesFS(t *testing.T) {
 		{
 			name: "judgement",
 			fsys: JudgementFixturesFS(),
-			dir:  judgementFixturesDir,
+			dir:  JudgementFixturesDir,
 			expectedFixtures: []string{
 				"cpi-latest",
 				"data",
@@ -42,7 +42,7 @@ func TestFixturesFS(t *testing.T) {
 		{
 			name: "term",
 			fsys: TermFixturesFS(),
-			dir:  termFixturesDir,
+			dir:  TermFixturesDir,
 			expectedFixtures: []string{
 				"cpi-latest",
 				"data",
@@ -53,7 +53,6 @@ func TestFixturesFS(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		Convey(fmt.Sprintf("Given the embedded %s fixtures", tc.name), t, func() {
 			Convey(fmt.Sprintf("When the %s fixtures directory is listed", tc.name), func() {
 				entries, err := fs.ReadDir(tc.fsys, tc.dir)
