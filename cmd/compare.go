@@ -14,29 +14,21 @@ import (
 )
 
 const (
-	indexNameDocuments  = "search-documents"
-	indexNameJudgements = "search-judgements"
-	indexNameTerms      = "search-terms"
+	indexNameDocuments = "search-documents"
 
 	// label used in each store's log and error messages.
-	labelDocument  = "document"
-	labelJudgement = "judgement"
-	labelTerm      = "term"
+	labelDocument = "document"
 )
 
 // App holds the stores the compare command operates on.
 type App struct {
-	Documents  stream.Stream[stream.Item]
-	Judgements stream.Stream[stream.Item]
-	Terms      stream.Stream[stream.Item]
+	Documents stream.Stream[stream.Item]
 }
 
 // NewApp wires the App to the embedded fixture stores.
 func NewApp() *App {
 	return &App{
-		Documents:  stream.NewDocumentStore(),
-		Judgements: stream.NewJudgementStore(),
-		Terms:      stream.NewTermStore(),
+		Documents: stream.NewDocumentStore(),
 	}
 }
 
@@ -83,7 +75,7 @@ func (a *App) runCompare(cmd *cobra.Command, args []string) error {
 	if err := a.loadIndexes(ctx, esClient); err != nil {
 		return err
 	}
-	ui.Info("indexes %s, %s, %s created", indexNameDocuments, indexNameJudgements, indexNameTerms)
+	ui.Info("index %s created", indexNameDocuments)
 
 	if err := a.loadStores(ctx, esClient); err != nil {
 		return err
@@ -117,8 +109,6 @@ type storeTarget struct {
 func (a *App) storeTargets() []storeTarget {
 	return []storeTarget{
 		{a.Documents, indexNameDocuments, labelDocument},
-		{a.Judgements, indexNameJudgements, labelJudgement},
-		{a.Terms, indexNameTerms, labelTerm},
 	}
 }
 

@@ -43,8 +43,6 @@ func TestLoadStore(t *testing.T) {
 		indexName string
 	}{
 		{labelDocument, indexNameDocuments},
-		{labelJudgement, indexNameJudgements},
-		{labelTerm, indexNameTerms},
 	}
 
 	for _, tc := range cases {
@@ -114,11 +112,9 @@ func TestLoadStore(t *testing.T) {
 }
 
 func TestLoadStores(t *testing.T) {
-	Convey("Given an App with all three stores populated", t, func() {
+	Convey("Given an App with its document store populated", t, func() {
 		app := &App{
-			Documents:  fakeStore{items: sampleItems()},
-			Judgements: fakeStore{items: sampleItems()},
-			Terms:      fakeStore{items: sampleItems()},
+			Documents: fakeStore{items: sampleItems()},
 		}
 		mockClient := &dpEsClientMock.ClientMock{
 			AddDocumentFunc: func(ctx context.Context, indexName, documentID string, document []byte, opts *dpEsClient.AddDocumentOptions) error {
@@ -129,18 +125,16 @@ func TestLoadStores(t *testing.T) {
 		Convey("When loadStores is called", func() {
 			err := app.loadStores(context.Background(), mockClient)
 
-			Convey("Then it should load every store into its index in order", func() {
+			Convey("Then it should load every store into its index", func() {
 				So(err, ShouldBeNil)
 				calls := mockClient.AddDocumentCalls()
-				So(len(calls), ShouldEqual, 6)
+				So(len(calls), ShouldEqual, 2)
 				So(calls[0].IndexName, ShouldEqual, indexNameDocuments)
-				So(calls[2].IndexName, ShouldEqual, indexNameJudgements)
-				So(calls[4].IndexName, ShouldEqual, indexNameTerms)
 			})
 		})
 	})
 
-	Convey("Given an App where one store fails to list", t, func() {
+	Convey("Given an App where a store fails to list", t, func() {
 		cases := []struct {
 			label      string
 			newApp     func() *App
@@ -150,34 +144,10 @@ func TestLoadStores(t *testing.T) {
 				label: "documents",
 				newApp: func() *App {
 					return &App{
-						Documents:  fakeStore{listErr: errors.New(errDiskError)},
-						Judgements: fakeStore{items: sampleItems()},
-						Terms:      fakeStore{items: sampleItems()},
+						Documents: fakeStore{listErr: errors.New(errDiskError)},
 					}
 				},
 				wantLoaded: 0,
-			},
-			{
-				label: "judgements",
-				newApp: func() *App {
-					return &App{
-						Documents:  fakeStore{items: sampleItems()},
-						Judgements: fakeStore{listErr: errors.New(errDiskError)},
-						Terms:      fakeStore{items: sampleItems()},
-					}
-				},
-				wantLoaded: 2,
-			},
-			{
-				label: "terms",
-				newApp: func() *App {
-					return &App{
-						Documents:  fakeStore{items: sampleItems()},
-						Judgements: fakeStore{items: sampleItems()},
-						Terms:      fakeStore{listErr: errors.New(errDiskError)},
-					}
-				},
-				wantLoaded: 4,
 			},
 		}
 
@@ -214,13 +184,11 @@ func TestLoadIndexes(t *testing.T) {
 		Convey("When loadIndexes is called", func() {
 			err := app.loadIndexes(context.Background(), mockClient)
 
-			Convey("Then it should create the three indexes by name in order", func() {
+			Convey("Then it should create the documents index by name", func() {
 				So(err, ShouldBeNil)
 				calls := mockClient.CreateIndexCalls()
-				So(len(calls), ShouldEqual, 3)
+				So(len(calls), ShouldEqual, 1)
 				So(calls[0].IndexName, ShouldEqual, indexNameDocuments)
-				So(calls[1].IndexName, ShouldEqual, indexNameJudgements)
-				So(calls[2].IndexName, ShouldEqual, indexNameTerms)
 			})
 		})
 	})
