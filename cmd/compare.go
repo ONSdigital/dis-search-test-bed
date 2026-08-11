@@ -4,27 +4,51 @@ import (
 	"context"
 
 	testElasticsearch "github.com/ONSdigital/dis-search-test-bed/elasticsearch"
+	"github.com/ONSdigital/dis-search-test-bed/testset/stream"
 	"github.com/ONSdigital/dis-search-test-bed/ui"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	dpEs "github.com/ONSdigital/dp-elasticsearch/v4"
 	dpEsClient "github.com/ONSdigital/dp-elasticsearch/v4/client"
 )
 
-const indexName = "search-testbed"
+const (
+	indexNameDocuments  = "search-documents"
+	indexNameJudgements = "search-judgements"
+	indexNameTerms      = "search-terms"
+)
+
+// App holds the stores the compare command operates on.
+type App struct {
+	Documents  stream.Stream[stream.Item]
+	Judgements stream.Stream[stream.Item]
+	Terms      stream.Stream[stream.Item]
+}
+
+// NewApp wires the App to the embedded fixture stores.
+func NewApp() *App {
+	return &App{
+		Documents:  stream.NewDocumentStore(),
+		Judgements: stream.NewJudgementStore(),
+		Terms:      stream.NewTermStore(),
+	}
+}
 
 func compareCommand(ctx context.Context) (*cobra.Command, error) {
+	app := NewApp()
+
 	compareCmd := &cobra.Command{
 		Use:   "compare",
 		Short: "Compare algorithms across terms",
 		Long:  `Compare algorithms across different terms requests with the same index.`,
-		RunE:  runCompare,
+		RunE:  app.runCompare,
 	}
 
 	return compareCmd, nil
 }
 
-func runCompare(cmd *cobra.Command, args []string) error {
+func (a *App) runCompare(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	spinner := ui.NewSpinner("starting elasticsearch container for testing...")
@@ -51,15 +75,24 @@ func runCompare(cmd *cobra.Command, args []string) error {
 	}
 	ui.Info("elasticsearch client initialised")
 
-	if err := testElasticsearch.PrepareIndex(ctx, esClient, indexName); err != nil {
+	if err := a.loadIndexes(ctx, esClient); err != nil {
+		return err
+	}
+	ui.Info("indexes %s, %s, %s created", indexNameDocuments, indexNameJudgements, indexNameTerms)
+
+	if err := a.loadStore(ctx, esClient, a.Documents, indexNameDocuments, "document"); err != nil {
 		return err
 	}
 
-	ui.Info("index %s created", indexName)
+	if err := a.loadStore(ctx, esClient, a.Judgements, indexNameJudgements, "judgement"); err != nil {
+		return err
+	}
 
-	ui.Info("this is where we would load the data")
+	if err := a.loadStore(ctx, esClient, a.Terms, indexNameTerms, "term"); err != nil {
+		return err
+	}
 
-	// TODO: load data and execute requests
+	// TODO: execute requests
 
 	shutdownSpinner := ui.NewSpinner("shutting down elasticsearch container...")
 	shutdownSpinner.Start()
@@ -71,5 +104,37 @@ func runCompare(cmd *cobra.Command, args []string) error {
 	}
 	shutdownSpinner.Stop()
 
+	return nil
+}
+
+// loadIndexes creates the indexes for the documents, judgements and terms.
+func (a *App) loadIndexes(ctx context.Context, esClient dpEsClient.Client) error {
+	if err := testElasticsearch.PrepareIndex(ctx, esClient, indexNameDocuments); err != nil {
+		return err
+	}
+	if err := testElasticsearch.PrepareIndex(ctx, esClient, indexNameJudgements); err != nil {
+		return err
+	}
+	if err := testElasticsearch.PrepareIndex(ctx, esClient, indexNameTerms); err != nil {
+		return err
+	}
+	return nil
+}
+
+// loadStore reads every item from store and indexes each one into indexName.
+// label is the singular noun used in log and error messages, e.g. "document".
+func (a *App) loadStore(ctx context.Context, esClient dpEsClient.Client, store stream.Stream[stream.Item], indexName, label string) error {
+	items, err := store.List(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "failed to list %ss", label)
+	}
+
+	for _, item := range items {
+		if err := esClient.AddDocument(ctx, indexName, item.Name, item.Body, nil); err != nil {
+			return errors.Wrapf(err, "failed to index %s %q", label, item.Name)
+		}
+	}
+
+	ui.Info("loaded %d %ss into index %s", len(items), label, indexName)
 	return nil
 }
