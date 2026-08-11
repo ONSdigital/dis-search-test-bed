@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/ONSdigital/dis-search-test-bed/testset/stream"
@@ -47,7 +48,8 @@ func TestLoadStore(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		Convey("Given a "+tc.label+" store with two items", t, func() {
+		testName := fmt.Sprintf("Given a %s store with two items", tc.label)
+		Convey(testName, t, func() {
 			app := &App{}
 
 			Convey("When loadStore is called with a client that indexes successfully", func() {
