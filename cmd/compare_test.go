@@ -15,6 +15,7 @@ const (
 	docNameCPI     = "cpi-latest"
 	docNameGrowth  = "growth-dataset"
 	errConnRefused = "connection refused"
+	errDiskError   = "disk error"
 )
 
 // fakeStore is a [stream.Stream[stream.Item]] implementation for injecting test data.
@@ -40,9 +41,9 @@ func TestLoadStore(t *testing.T) {
 		label     string
 		indexName string
 	}{
-		{"document", indexNameDocuments},
-		{"judgement", indexNameJudgements},
-		{"term", indexNameTerms},
+		{labelDocument, indexNameDocuments},
+		{labelJudgement, indexNameJudgements},
+		{labelTerm, indexNameTerms},
 	}
 
 	for _, tc := range cases {
@@ -79,12 +80,12 @@ func TestLoadStore(t *testing.T) {
 					},
 				}
 
-				err := app.loadStore(context.Background(), mockClient, fakeStore{listErr: errors.New("disk error")}, tc.indexName, tc.label)
+				err := app.loadStore(context.Background(), mockClient, fakeStore{listErr: errors.New(errDiskError)}, tc.indexName, tc.label)
 
 				Convey("Then it should return a wrapped error and index nothing", func() {
 					So(err, ShouldNotBeNil)
 					So(err.Error(), ShouldContainSubstring, "failed to list "+tc.label+"s")
-					So(err.Error(), ShouldContainSubstring, "disk error")
+					So(err.Error(), ShouldContainSubstring, errDiskError)
 					So(len(mockClient.AddDocumentCalls()), ShouldEqual, 0)
 				})
 			})
@@ -108,6 +109,95 @@ func TestLoadStore(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestLoadStores(t *testing.T) {
+	Convey("Given an App with all three stores populated", t, func() {
+		app := &App{
+			Documents:  fakeStore{items: sampleItems()},
+			Judgements: fakeStore{items: sampleItems()},
+			Terms:      fakeStore{items: sampleItems()},
+		}
+		mockClient := &dpEsClientMock.ClientMock{
+			AddDocumentFunc: func(ctx context.Context, indexName, documentID string, document []byte, opts *dpEsClient.AddDocumentOptions) error {
+				return nil
+			},
+		}
+
+		Convey("When loadStores is called", func() {
+			err := app.loadStores(context.Background(), mockClient)
+
+			Convey("Then it should load every store into its index in order", func() {
+				So(err, ShouldBeNil)
+				calls := mockClient.AddDocumentCalls()
+				So(len(calls), ShouldEqual, 6)
+				So(calls[0].IndexName, ShouldEqual, indexNameDocuments)
+				So(calls[2].IndexName, ShouldEqual, indexNameJudgements)
+				So(calls[4].IndexName, ShouldEqual, indexNameTerms)
+			})
+		})
+	})
+
+	Convey("Given an App where one store fails to list", t, func() {
+		cases := []struct {
+			label      string
+			newApp     func() *App
+			wantLoaded int
+		}{
+			{
+				label: "documents",
+				newApp: func() *App {
+					return &App{
+						Documents:  fakeStore{listErr: errors.New(errDiskError)},
+						Judgements: fakeStore{items: sampleItems()},
+						Terms:      fakeStore{items: sampleItems()},
+					}
+				},
+				wantLoaded: 0,
+			},
+			{
+				label: "judgements",
+				newApp: func() *App {
+					return &App{
+						Documents:  fakeStore{items: sampleItems()},
+						Judgements: fakeStore{listErr: errors.New(errDiskError)},
+						Terms:      fakeStore{items: sampleItems()},
+					}
+				},
+				wantLoaded: 2,
+			},
+			{
+				label: "terms",
+				newApp: func() *App {
+					return &App{
+						Documents:  fakeStore{items: sampleItems()},
+						Judgements: fakeStore{items: sampleItems()},
+						Terms:      fakeStore{listErr: errors.New(errDiskError)},
+					}
+				},
+				wantLoaded: 4,
+			},
+		}
+
+		for _, tc := range cases {
+			Convey("When loadStores is called and the "+tc.label+" store fails", func() {
+				mockClient := &dpEsClientMock.ClientMock{
+					AddDocumentFunc: func(ctx context.Context, indexName, documentID string, document []byte, opts *dpEsClient.AddDocumentOptions) error {
+						return nil
+					},
+				}
+
+				err := tc.newApp().loadStores(context.Background(), mockClient)
+
+				Convey("Then it should return a wrapped error naming "+tc.label+" and stop", func() {
+					So(err, ShouldNotBeNil)
+					So(err.Error(), ShouldContainSubstring, "failed to list "+tc.label)
+					So(err.Error(), ShouldContainSubstring, errDiskError)
+					So(len(mockClient.AddDocumentCalls()), ShouldEqual, tc.wantLoaded)
+				})
+			})
+		}
+	})
 }
 
 func TestLoadIndexes(t *testing.T) {

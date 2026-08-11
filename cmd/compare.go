@@ -17,6 +17,11 @@ const (
 	indexNameDocuments  = "search-documents"
 	indexNameJudgements = "search-judgements"
 	indexNameTerms      = "search-terms"
+
+	// label used in each store's log and error messages.
+	labelDocument  = "document"
+	labelJudgement = "judgement"
+	labelTerm      = "term"
 )
 
 // App holds the stores the compare command operates on.
@@ -80,15 +85,7 @@ func (a *App) runCompare(cmd *cobra.Command, args []string) error {
 	}
 	ui.Info("indexes %s, %s, %s created", indexNameDocuments, indexNameJudgements, indexNameTerms)
 
-	if err := a.loadStore(ctx, esClient, a.Documents, indexNameDocuments, "document"); err != nil {
-		return err
-	}
-
-	if err := a.loadStore(ctx, esClient, a.Judgements, indexNameJudgements, "judgement"); err != nil {
-		return err
-	}
-
-	if err := a.loadStore(ctx, esClient, a.Terms, indexNameTerms, "term"); err != nil {
+	if err := a.loadStores(ctx, esClient); err != nil {
 		return err
 	}
 
@@ -107,16 +104,40 @@ func (a *App) runCompare(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// loadIndexes creates the indexes for the documents, judgements and terms.
+// storeTarget pairs a fixture store with the index it loads into and the
+// singular noun used in its log and error messages.
+type storeTarget struct {
+	store     stream.Stream[stream.Item]
+	indexName string
+	label     string
+}
+
+// storeTargets is the single source of truth for which store loads into
+// which index.
+func (a *App) storeTargets() []storeTarget {
+	return []storeTarget{
+		{a.Documents, indexNameDocuments, labelDocument},
+		{a.Judgements, indexNameJudgements, labelJudgement},
+		{a.Terms, indexNameTerms, labelTerm},
+	}
+}
+
+// loadIndexes creates the Elasticsearch index for every store target.
 func (a *App) loadIndexes(ctx context.Context, esClient dpEsClient.Client) error {
-	if err := testElasticsearch.PrepareIndex(ctx, esClient, indexNameDocuments); err != nil {
-		return err
+	for _, t := range a.storeTargets() {
+		if err := testElasticsearch.PrepareIndex(ctx, esClient, t.indexName); err != nil {
+			return err
+		}
 	}
-	if err := testElasticsearch.PrepareIndex(ctx, esClient, indexNameJudgements); err != nil {
-		return err
-	}
-	if err := testElasticsearch.PrepareIndex(ctx, esClient, indexNameTerms); err != nil {
-		return err
+	return nil
+}
+
+// loadStores loads every store target into its Elasticsearch index.
+func (a *App) loadStores(ctx context.Context, esClient dpEsClient.Client) error {
+	for _, t := range a.storeTargets() {
+		if err := a.loadStore(ctx, esClient, t.store, t.indexName, t.label); err != nil {
+			return err
+		}
 	}
 	return nil
 }
