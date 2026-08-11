@@ -105,7 +105,7 @@ func (a *App) runCompare(cmd *cobra.Command, args []string) error {
 }
 
 // storeTarget pairs a fixture store with the index it loads into and the
-// singular noun used in its log and error messages.
+// label used in its log and error messages.
 type storeTarget struct {
 	store     stream.Stream[stream.Item]
 	indexName string
@@ -143,7 +143,7 @@ func (a *App) loadStores(ctx context.Context, esClient dpEsClient.Client) error 
 }
 
 // loadStore reads every item from store and indexes each one into indexName.
-// label is the singular noun used in log and error messages, e.g. "document".
+// label is used in log and error messages, e.g. "document".
 func (a *App) loadStore(ctx context.Context, esClient dpEsClient.Client, store stream.Stream[stream.Item], indexName, label string) error {
 	items, err := store.List(ctx)
 	if err != nil {
