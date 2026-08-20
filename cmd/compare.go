@@ -22,13 +22,17 @@ const (
 
 // App holds the stores the compare command operates on.
 type App struct {
-	Documents stream.Stream[stream.Item]
+	Documents  stream.Stream[stream.Item] // indexed into Elasticsearch (see storeTargets)
+	Terms      stream.Stream[stream.Item] // evaluation data: query terms (not indexed)
+	Judgements stream.Stream[stream.Item] // evaluation data: relevance labels (not indexed)
 }
 
 // NewApp wires the App to the embedded fixture stores.
 func NewApp() *App {
 	return &App{
-		Documents: stream.NewDocumentStore(),
+		Documents:  stream.NewDocumentStore(),
+		Terms:      stream.NewTermStore(),
+		Judgements: stream.NewJudgementStore(),
 	}
 }
 
@@ -81,7 +85,9 @@ func (a *App) runCompare(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: execute requests
+	if err := a.evaluateTerms(ctx, esClient); err != nil {
+		return err
+	}
 
 	shutdownSpinner := ui.NewSpinner("shutting down elasticsearch container...")
 	shutdownSpinner.Start()

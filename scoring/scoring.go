@@ -3,6 +3,7 @@ package scoring
 import (
 	"errors"
 	"math"
+	"sort"
 )
 
 // CalculateNDCG calculates the Normalized Discounted Cumulative Gain (NDCG)
@@ -36,6 +37,17 @@ func CalculateDCG(relevanceScores []int) float64 {
 	}
 
 	return discountedCumulativeGain
+}
+
+// CalculateIDCG calculates the Ideal Discounted Cumulative Gain (IDCG) for a
+// given list of relevance scores: the maximum DCG achievable for that set,
+// i.e. the DCG of the scores in their best possible (descending) order.
+func CalculateIDCG(relevanceScores []int) float64 {
+	idealRelevanceScores := make([]int, len(relevanceScores))
+	copy(idealRelevanceScores, relevanceScores)
+	sort.Sort(sort.Reverse(sort.IntSlice(idealRelevanceScores)))
+
+	return CalculateDCG(idealRelevanceScores)
 }
 
 func calculateDiscountedRelevanceScore(relevanceScore, position int) float64 {

@@ -58,6 +58,46 @@ func TestCalculateDCG(t *testing.T) {
 	})
 }
 
+func TestCalculateIDCG(t *testing.T) {
+	Convey("Given a call to CalculateIDCG", t, func() {
+		Convey("When the relevance scores list is empty", func() {
+			result := CalculateIDCG([]int{})
+
+			Convey("Then the IDCG should be 0.0", func() {
+				So(result, ShouldEqual, 0.0)
+			})
+		})
+
+		Convey("When given unsorted relevance scores", func() {
+			scores := []int{1, 3, 2}
+			result := CalculateIDCG(scores)
+
+			// Scored in their best (descending) order: 3, 2, 1.
+			expected := 3.0/math.Log2(2) + 2.0/math.Log2(3) + 1.0/math.Log2(4)
+
+			Convey("Then the IDCG should be the DCG of the scores sorted descending", func() {
+				So(result, ShouldAlmostEqual, expected)
+			})
+
+			Convey("Then the input slice should be left unchanged", func() {
+				So(scores, ShouldResemble, []int{1, 3, 2})
+			})
+		})
+
+		Convey("When given the worked-example relevance scores", func() {
+			scores := []int{2, 2, 2, 1, 1, 0}
+			result := CalculateIDCG(scores)
+
+			expected := 2.0/math.Log2(2) + 2.0/math.Log2(3) + 2.0/math.Log2(4) +
+				1.0/math.Log2(5) + 1.0/math.Log2(6)
+
+			Convey("Then the IDCG should be the DCG of the ideal ranking", func() {
+				So(result, ShouldAlmostEqual, expected)
+			})
+		})
+	})
+}
+
 func TestCalculateNDCG(t *testing.T) {
 	Convey("Given a call to CalculateNDCG", t, func() {
 		Convey("When both lists are empty", func() {
