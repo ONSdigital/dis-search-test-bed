@@ -1,6 +1,6 @@
 module github.com/ONSdigital/dis-search-test-bed
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/ONSdigital/dp-elasticsearch/v4 v4.0.1
