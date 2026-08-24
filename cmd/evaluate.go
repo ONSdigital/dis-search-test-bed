@@ -166,7 +166,7 @@ func scoreRanking(rankedIDs []string, relevanceByDoc map[string]int, k int) (dcg
 	return dcg, idcg, ndcg
 }
 
-// waitForSearchable blocks until every indexed document is searchable, or the
+// waitForSearchable blocks until every freshly indexed document is searchable, or the
 // searchableTimeout elapses. Elasticsearch is near-real-time and the client
 // exposes no explicit refresh, so we poll the document count.
 func (a *App) waitForSearchable(ctx context.Context, esClient dpEsClient.Client, index string) error {
