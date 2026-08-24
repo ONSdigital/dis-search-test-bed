@@ -69,7 +69,7 @@ The rest of this document explains each stage in that flow.
 
 ---
 
-## 3. The test data model — documents, terms, judgements
+## 3. The test data model: documents, terms, judgements
 
 This is the foundation everything else builds on. It lives in [`testset/`](testset/) and is split into **three sibling directories, one JSON file per item, where the filename is the item's id**. (There is a fuller spec in [`testset/README.md`](testset/README.md).)
 
@@ -126,7 +126,7 @@ Two things to note:
 
 ---
 
-## 4. Loading the data — the `stream` interface
+## 4. Loading the data: the `stream` interface
 
 The test data has to get from those JSON files into memory (and into Elasticsearch). That's the job of the small generic loading layer in [`testset/stream/`](testset/stream/) — this is the "interface for loading" you'll see referenced in tickets.
 
@@ -144,7 +144,7 @@ The data itself is **compiled into the binary** with `//go:embed` ([`testset/fix
 
 ---
 
-## 5. Producing production-representative queries — the `algorithm` package
+## 5. Producing production-representative queries: the `algorithm` package
 
 To measure the _real_ search experience, the tool must send Elasticsearch the _real_ production queries — not a toy `match` query. That's what [`algorithm/`](algorithm/) provides: a way to build a full Elasticsearch request for a named algorithm (e.g. `baseline`).
 
@@ -161,7 +161,7 @@ The available algorithm names are defined in [`algorithm/option.go:9`](algorithm
 
 ---
 
-## 6. Talking to Elasticsearch — testcontainers & index settings
+## 6. Talking to Elasticsearch: testcontainers & index settings
 
 The tool scores against a **real** Elasticsearch, but you don't need one installed. On each run it spins up a throwaway instance in Docker using [testcontainers](https://testcontainers.com/) and tears it down afterwards. This lives in [`elasticsearch/container.go`](elasticsearch/container.go):
 
@@ -177,7 +177,7 @@ Documents are then indexed one at a time in [`loadStore`](cmd/compare.go#L143) v
 
 ---
 
-## 7. The commands — how you run it
+## 7. The commands: how you run it
 
 The CLI is built with [Cobra](https://cobra.dev/).
 
@@ -192,7 +192,7 @@ The `compare` command is defined in [`cmd/compare.go`](cmd/compare.go). Its stat
 
 ---
 
-## 8. Scoring — DCG, IDCG, NDCG
+## 8. Scoring: DCG, IDCG, NDCG
 
 This is where a ranking becomes a number. The maths is in one small, dependency-free file, [`scoring/scoring.go`](scoring/scoring.go), and is verified by [`scoring/scoring_test.go`](scoring/scoring_test.go).
 
@@ -269,8 +269,6 @@ make compare
 ```
 
 You'll get one line per term reporting `DCG@10`, `IDCG@10` and `NDCG@10` ([`cmd/evaluate.go:114`](cmd/evaluate.go#L114)).
-
-**Lint** ([`make lint`](Makefile#L94)) runs both Go linting and JSON linting — the latter includes `prettier` over all JSON and the template linter over the `.tmpl` files.
 
 **Test:**
 
