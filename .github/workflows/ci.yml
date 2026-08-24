@@ -62,10 +62,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
       - name: Run Go lint checks
         uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
+          install-mode: goinstall
 
   dis-search-test-bed-lint-json:
     runs-on: ubuntu-latest
