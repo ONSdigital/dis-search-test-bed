@@ -46,12 +46,25 @@ func compareCommand(ctx context.Context) (*cobra.Command, error) {
 		RunE:  app.runCompare,
 	}
 
+	exportCmd, err := exportCommand(app)
+	if err != nil {
+		return nil, err
+	}
+	compareCmd.AddCommand(exportCmd)
+
 	return compareCmd, nil
 }
 
 func (a *App) runCompare(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
+	return a.withElasticsearch(cmd.Context(), func(ctx context.Context, esClient dpEsClient.Client) error {
+		_, err := a.evaluateTerms(ctx, esClient)
+		return err
+	})
+}
 
+// withElasticsearch starts an Elasticsearch instance, loads the test documents,
+// and invokes run against the prepared client. The instance is always stopped.
+func (a *App) withElasticsearch(ctx context.Context, run func(context.Context, dpEsClient.Client) error) (err error) {
 	spinner := ui.NewSpinner("starting elasticsearch container for testing...")
 	spinner.Start()
 
@@ -62,6 +75,16 @@ func (a *App) runCompare(cmd *cobra.Command, args []string) error {
 	}
 	spinner.Stop()
 	ui.Celebrate("elasticsearch container started")
+
+	defer func() {
+		shutdownSpinner := ui.NewSpinner("shutting down elasticsearch container...")
+		shutdownSpinner.Start()
+		terminateErr := testElasticSearchInstance.Terminate(context.Background())
+		shutdownSpinner.Stop()
+		if err == nil && terminateErr != nil {
+			err = terminateErr
+		}
+	}()
 
 	testEsURL, err := testElasticSearchInstance.GetURL(ctx)
 	if err != nil {
@@ -85,21 +108,7 @@ func (a *App) runCompare(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := a.evaluateTerms(ctx, esClient); err != nil {
-		return err
-	}
-
-	shutdownSpinner := ui.NewSpinner("shutting down elasticsearch container...")
-	shutdownSpinner.Start()
-
-	err = testElasticSearchInstance.Terminate(context.TODO())
-	if err != nil {
-		shutdownSpinner.Stop()
-		return err
-	}
-	shutdownSpinner.Stop()
-
-	return nil
+	return run(ctx, esClient)
 }
 
 // storeTarget pairs a fixture store with the index it loads into and the

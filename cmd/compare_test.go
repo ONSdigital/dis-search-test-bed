@@ -21,13 +21,17 @@ const (
 
 // fakeStore is a [stream.Stream[stream.Item]] implementation for injecting test data.
 type fakeStore struct {
-	items   []stream.Item
-	listErr error
+	items     []stream.Item
+	itemsByID map[string]stream.Item
+	getErr    error
+	listErr   error
 }
 
-func (f fakeStore) Get(context.Context, string) (stream.Item, error) { return stream.Item{}, nil }
-func (f fakeStore) List(context.Context) ([]stream.Item, error)      { return f.items, f.listErr }
-func (f fakeStore) Put(context.Context, string, stream.Item) error   { return nil }
+func (f fakeStore) Get(_ context.Context, id string) (stream.Item, error) {
+	return f.itemsByID[id], f.getErr
+}
+func (f fakeStore) List(context.Context) ([]stream.Item, error)    { return f.items, f.listErr }
+func (f fakeStore) Put(context.Context, string, stream.Item) error { return nil }
 
 // sampleItems returns a small fixed set of items for the loader tests.
 func sampleItems() []stream.Item {
