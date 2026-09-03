@@ -1,4 +1,0 @@
-query_id,query,doc_id,rank,current_relevance,judged,title,uri,dcg,idcg,ndcg
-cpi-latest,cpi latest,cpi-latest,1,4,true,"Consumer price inflation, UK: April 2026",/economy/inflationandpriceindices/bulletins/consumerpriceinflation/april2026,4.0000,5.7619,0.6942
-data,data,accountancy-services-timeseries,1,2,true,"Accountancy services, UK: time series",/businessindustryandtrade/business/activitysizeandlocation/adhocs/009963accountancyservicestimeseriesdata,2.0000,4.7619,0.4200
-growth-figures,growth figures,growth-dataset,1,4,true,"Growth accounting multifactor productivity estimates, UK: October to December 2019",/economy/economicoutputandproductivity/productivitymeasures/bulletins/growthaccountingmultifactorproductivityestimatesuk/octobertodecember2019,4.0000,5.7619,0.6942
