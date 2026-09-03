@@ -24,6 +24,9 @@ const (
 	testShortCPITitle  = "CPI"
 	testShortCPIURI    = "/cpi"
 	testShortGrowthURI = "/growth"
+	testDCG            = "4.0000"
+	testIDCG           = "5.7619"
+	testNDCG           = "0.6942"
 )
 
 type failingWriter struct{}
@@ -84,6 +87,9 @@ func TestWriteEvaluationsCSV(t *testing.T) {
 					URI:        testGrowthURI,
 				},
 			},
+			DCG:  4,
+			IDCG: 5.76186,
+			NDCG: 0.69424,
 		}}
 		var output bytes.Buffer
 
@@ -104,9 +110,36 @@ func TestWriteEvaluationsCSV(t *testing.T) {
 						csvColumnJudged,
 						csvColumnTitle,
 						csvColumnURI,
+						csvColumnDCG,
+						csvColumnIDCG,
+						csvColumnNDCG,
 					},
-					{docNameCPI, testExportQuery, docNameCPI, "1", "4", "true", testCPITitle, testCPIURI},
-					{docNameCPI, testExportQuery, docNameGrowth, "2", "0", "false", testGrowthTitle, testGrowthURI},
+					{
+						docNameCPI,
+						testExportQuery,
+						docNameCPI,
+						"1",
+						"4",
+						"true",
+						testCPITitle,
+						testCPIURI,
+						testDCG,
+						testIDCG,
+						testNDCG,
+					},
+					{
+						docNameCPI,
+						testExportQuery,
+						docNameGrowth,
+						"2",
+						"0",
+						"false",
+						testGrowthTitle,
+						testGrowthURI,
+						testDCG,
+						testIDCG,
+						testNDCG,
+					},
 				})
 			})
 		})

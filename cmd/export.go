@@ -23,6 +23,10 @@ const (
 	csvColumnJudged           = "judged"
 	csvColumnTitle            = "title"
 	csvColumnURI              = "uri"
+	csvColumnDCG              = "dcg"
+	csvColumnIDCG             = "idcg"
+	csvColumnNDCG             = "ndcg"
+	csvMetricPrecision        = 4
 )
 
 // Export holds the state needed by the compare export command.
@@ -89,6 +93,9 @@ func writeEvaluationsCSV(writer io.Writer, evaluations []termEvaluation) error {
 		csvColumnJudged,
 		csvColumnTitle,
 		csvColumnURI,
+		csvColumnDCG,
+		csvColumnIDCG,
+		csvColumnNDCG,
 	}); err != nil {
 		return errors.Wrap(err, "failed to write CSV header")
 	}
@@ -104,6 +111,9 @@ func writeEvaluationsCSV(writer io.Writer, evaluations []termEvaluation) error {
 				strconv.FormatBool(hit.Judged),
 				hit.Title,
 				hit.URI,
+				strconv.FormatFloat(evaluation.DCG, 'f', csvMetricPrecision, 64),
+				strconv.FormatFloat(evaluation.IDCG, 'f', csvMetricPrecision, 64),
+				strconv.FormatFloat(evaluation.NDCG, 'f', csvMetricPrecision, 64),
 			}); err != nil {
 				return errors.Wrap(err, "failed to write CSV row")
 			}
