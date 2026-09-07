@@ -51,7 +51,7 @@ func exportCommand(app *App) (*cobra.Command, error) {
 	return exportCmd, nil
 }
 
-func (e *Export) runExport(cmd *cobra.Command) error {
+func (e *Export) runExport(cmd *cobra.Command, _ []string) error {
 	if strings.TrimSpace(e.OutputPath) == "" {
 		return errors.New("output path is required")
 	}
