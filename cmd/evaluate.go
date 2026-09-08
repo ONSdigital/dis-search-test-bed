@@ -7,14 +7,13 @@ import (
 
 	"github.com/ONSdigital/dis-search-test-bed/algorithm"
 	"github.com/ONSdigital/dis-search-test-bed/scoring"
+	"github.com/ONSdigital/dis-search-test-bed/testset/stream"
 	"github.com/ONSdigital/dis-search-test-bed/ui"
 	dpEsClient "github.com/ONSdigital/dp-elasticsearch/v4/client"
 	"github.com/pkg/errors"
 )
 
 const (
-	// evaluationK is the rank cutoff (the "@K") the metrics are reported at.
-	evaluationK = 10
 	// evaluationAlgorithm is the search algorithm whose ranking is evaluated.
 	evaluationAlgorithm = algorithm.SearchAlgorithmBaseline
 
@@ -42,6 +41,28 @@ type judgementEntry struct {
 	Relevance int    `json:"relevance"`
 }
 
+type documentMetadata struct {
+	Title string `json:"title"`
+	URI   string `json:"uri"`
+}
+
+type evaluatedHit struct {
+	DocumentID string
+	Rank       int
+	Relevance  int
+	Judged     bool
+	Title      string
+	URI        string
+}
+
+type termEvaluation struct {
+	Term term
+	Hits []evaluatedHit
+	DCG  float64
+	IDCG float64
+	NDCG float64
+}
+
 // msearchResponse is the subset of an Elasticsearch _msearch response we need:
 // the ranked document ids of each sub-search.
 type msearchResponse struct {
@@ -60,63 +81,109 @@ type countResponse struct {
 }
 
 // evaluateTerms queries Elasticsearch for every test term using the evaluation
-// algorithm and logs DCG@K, IDCG@K and NDCG@K of the results against the stored
-// relevance judgements.
-func (a *App) evaluateTerms(ctx context.Context, esClient dpEsClient.Client) error {
+// algorithm, then returns and logs its full-corpus relevance evaluation.
+func (a *App) evaluateTerms(ctx context.Context, esClient dpEsClient.Client) ([]termEvaluation, error) {
 	registry := algorithm.NewRequestRegistry([]algorithm.SearchAlgorithm{evaluationAlgorithm})
 	builder, err := registry.GetRequestBuilder(evaluationAlgorithm)
 	if err != nil {
-		return errors.Wrap(err, "failed to get request builder")
+		return nil, errors.Wrap(err, "failed to get request builder")
 	}
 
-	if err := a.waitForSearchable(ctx, esClient, indexNameDocuments); err != nil {
-		return err
+	documents, err := a.Documents.List(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list documents")
+	}
+
+	documentByID, err := buildDocumentMetadata(documents)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := a.waitForSearchable(ctx, esClient, indexNameDocuments, len(documents)); err != nil {
+		return nil, err
 	}
 
 	terms, err := a.Terms.List(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to list terms")
+		return nil, errors.Wrap(err, "failed to list terms")
 	}
 
+	evaluations := make([]termEvaluation, 0, len(terms))
 	for _, item := range terms {
 		var t term
 		if err := json.Unmarshal(item.Body, &t); err != nil {
-			return errors.Wrapf(err, "failed to parse term %q", item.Name)
+			return nil, errors.Wrapf(err, "failed to parse term %q", item.Name)
 		}
 
 		relevanceByDoc, err := a.relevanceForTerm(ctx, t.ID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		searches, err := builder.BuildRequest(ctx, &algorithm.SearchParameters{
 			Term:  t.Query,
 			Index: indexNameDocuments,
 			From:  0,
-			Size:  evaluationK,
+			Size:  len(documents),
 		})
 		if err != nil {
-			return errors.Wrapf(err, "failed to build request for term %q", t.ID)
+			return nil, errors.Wrapf(err, "failed to build request for term %q", t.ID)
 		}
 
 		raw, err := esClient.MultiSearch(ctx, searches, nil)
 		if err != nil {
-			return errors.Wrapf(err, "failed to query term %q", t.ID)
+			return nil, errors.Wrapf(err, "failed to query term %q", t.ID)
 		}
 
 		rankedIDs, err := parseRankedIDs(raw)
 		if err != nil {
-			return errors.Wrapf(err, "failed to parse response for term %q", t.ID)
+			return nil, errors.Wrapf(err, "failed to parse response for term %q", t.ID)
 		}
 
-		dcg, idcg, ndcg := scoreRanking(rankedIDs, relevanceByDoc, evaluationK)
+		hits := make([]evaluatedHit, 0, len(rankedIDs))
+		for rank, id := range rankedIDs {
+			document, ok := documentByID[id]
+			if !ok {
+				return nil, errors.Errorf("search returned document %q which is not in the document store", id)
+			}
+			relevance, judged := relevanceByDoc[id]
+			hits = append(hits, evaluatedHit{
+				DocumentID: id,
+				Rank:       rank + 1,
+				Relevance:  relevance,
+				Judged:     judged,
+				Title:      document.Title,
+				URI:        document.URI,
+			})
+		}
 
-		ui.Info("term %q (%s) [%s]: DCG@%d=%.4f IDCG@%d=%.4f NDCG@%d=%.4f",
+		dcg, idcg, ndcg := scoreRanking(rankedIDs, relevanceByDoc)
+		evaluations = append(evaluations, termEvaluation{
+			Term: t,
+			Hits: hits,
+			DCG:  dcg,
+			IDCG: idcg,
+			NDCG: ndcg,
+		})
+
+		ui.Info("term %q (%s) [%s]: DCG=%.4f IDCG=%.4f NDCG=%.4f",
 			t.Query, t.ID, evaluationAlgorithm,
-			evaluationK, dcg, evaluationK, idcg, evaluationK, ndcg)
+			dcg, idcg, ndcg)
 	}
 
-	return nil
+	return evaluations, nil
+}
+
+func buildDocumentMetadata(documents []stream.Item) (map[string]documentMetadata, error) {
+	documentByID := make(map[string]documentMetadata, len(documents))
+	for _, item := range documents {
+		var document documentMetadata
+		if err := json.Unmarshal(item.Body, &document); err != nil {
+			return nil, errors.Wrapf(err, "failed to parse document %q", item.Name)
+		}
+		documentByID[item.Name] = document
+	}
+	return documentByID, nil
 }
 
 // relevanceForTerm returns the term's relevance answer key as a map of document
@@ -141,10 +208,11 @@ func (a *App) relevanceForTerm(ctx context.Context, termID string) (map[string]i
 	return relevanceByDoc, nil
 }
 
-// scoreRanking computes DCG@K, IDCG@K and NDCG@K for one term's ranked results.
+// scoreRanking computes DCG, IDCG and NDCG for one term's complete ranked
+// results.
 // rankedIDs are the returned document ids in rank order; relevanceByDoc is the
 // term's answer key (a returned id absent from it is unjudged, relevance 0).
-func scoreRanking(rankedIDs []string, relevanceByDoc map[string]int, k int) (dcg, idcg, ndcg float64) {
+func scoreRanking(rankedIDs []string, relevanceByDoc map[string]int) (dcg, idcg, ndcg float64) {
 	actual := make([]int, 0, len(rankedIDs))
 	for _, id := range rankedIDs {
 		actual = append(actual, relevanceByDoc[id])
@@ -155,9 +223,7 @@ func scoreRanking(rankedIDs []string, relevanceByDoc map[string]int, k int) (dcg
 		judged = append(judged, relevance)
 	}
 
-	dcg = scoring.CalculateDCG(topK(actual, k))
-	// Each term judges no more than K documents, so the ideal DCG over all
-	// judged relevances is already IDCG@K.
+	dcg = scoring.CalculateDCG(actual)
 	idcg = scoring.CalculateIDCG(judged)
 	if idcg > 0 {
 		ndcg = dcg / idcg
@@ -169,13 +235,7 @@ func scoreRanking(rankedIDs []string, relevanceByDoc map[string]int, k int) (dcg
 // waitForSearchable blocks until all indexed documents are searchable, or the
 // searchableTimeout elapses. Elasticsearch is near-real-time and the client
 // exposes no explicit refresh, so we poll the document count.
-func (a *App) waitForSearchable(ctx context.Context, esClient dpEsClient.Client, index string) error {
-	documents, err := a.Documents.List(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to list documents")
-	}
-	expected := len(documents)
-
+func (a *App) waitForSearchable(ctx context.Context, esClient dpEsClient.Client, index string, expected int) error {
 	deadline := time.Now().Add(searchableTimeout)
 	for {
 		raw, err := esClient.CountIndices(ctx, []string{index})
@@ -221,13 +281,4 @@ func parseRankedIDs(raw []byte) ([]string, error) {
 	}
 
 	return ids, nil
-}
-
-// topK returns the first k elements of scores, or all of them when k is not a
-// smaller positive cutoff.
-func topK(scores []int, k int) []int {
-	if k > 0 && k < len(scores) {
-		return scores[:k]
-	}
-	return scores
 }
