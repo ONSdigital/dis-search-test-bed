@@ -24,9 +24,6 @@ const (
 	testShortCPITitle  = "CPI"
 	testShortCPIURI    = "/cpi"
 	testShortGrowthURI = "/growth"
-	testDCG            = "4.0000"
-	testIDCG           = "5.7619"
-	testNDCG           = "0.6942"
 )
 
 type failingWriter struct{}
@@ -66,7 +63,7 @@ func TestExportCommand(t *testing.T) {
 }
 
 func TestWriteEvaluationsCSV(t *testing.T) {
-	Convey("Given ranked evaluations with judged and unjudged documents", t, func() {
+	Convey("Given evaluations containing multiple documents", t, func() {
 		evaluations := []termEvaluation{{
 			Term: term{ID: docNameCPI, Query: testExportQuery},
 			Hits: []evaluatedHit{
@@ -87,9 +84,6 @@ func TestWriteEvaluationsCSV(t *testing.T) {
 					URI:        testGrowthURI,
 				},
 			},
-			DCG:  4,
-			IDCG: 5.76186,
-			NDCG: 0.69424,
 		}}
 		var output bytes.Buffer
 
@@ -105,40 +99,25 @@ func TestWriteEvaluationsCSV(t *testing.T) {
 						csvColumnQueryID,
 						csvColumnQuery,
 						csvColumnDocumentID,
-						csvColumnRank,
 						csvColumnCurrentRelevance,
-						csvColumnJudged,
 						csvColumnTitle,
 						csvColumnURI,
-						csvColumnDCG,
-						csvColumnIDCG,
-						csvColumnNDCG,
 					},
 					{
 						docNameCPI,
 						testExportQuery,
 						docNameCPI,
-						"1",
 						"4",
-						"true",
 						testCPITitle,
 						testCPIURI,
-						testDCG,
-						testIDCG,
-						testNDCG,
 					},
 					{
 						docNameCPI,
 						testExportQuery,
 						docNameGrowth,
-						"2",
 						"0",
-						"false",
 						testGrowthTitle,
 						testGrowthURI,
-						testDCG,
-						testIDCG,
-						testNDCG,
 					},
 				})
 			})
