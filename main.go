@@ -10,7 +10,7 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		ui.Error("%s", err.Error())
+		ui.Error("error on search relevancy tool execution: %s", err.Error())
 		os.Exit(1)
 	}
 }
@@ -18,10 +18,10 @@ func main() {
 func run() error {
 	ctx := context.Background()
 
-	rootCommand, err := cmd.Load(ctx)
+	rootCommand, err := cmd.Load()
 	if err != nil {
 		return err
 	}
 
-	return rootCommand.Execute()
+	return rootCommand.ExecuteContext(ctx)
 }
