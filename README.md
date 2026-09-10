@@ -6,6 +6,8 @@
 
 A comprehensive tool for testing and comparing search algorithm relevance across different configurations and datasets.
 
+For how the tooling is structured (the data model, the commands, and how scoring works), see [ARCHITECTURE.md](./ARCHITECTURE.md).
+
 ## Quick Start
 
 ```bash
@@ -15,6 +17,42 @@ colima start
 # 2. Run tool
 make compare
 ```
+
+## Commands
+
+The tool has three commands. You can run them without building, using `go run .` from the repository root.
+
+### Prerequisites
+
+- **Go** installed (see the version in [`go.mod`](./go.mod)).
+- **Docker running** for `compare` and `export`: they start a throwaway Elasticsearch via testcontainers. We prefer colima (`colima start`). `import` does **not** need Docker.
+- Run from the **repository root**: `import` writes judgement files to `testset/judgements/` relative to the working directory.
+
+### compare
+
+Evaluate every term and log DCG, IDCG and NDCG per term (needs Docker):
+
+```sh
+go run . compare
+```
+
+### export
+
+Run the same evaluation and write each ranked result with its current judgement to a CSV (needs Docker). The output path is required:
+
+```sh
+go run . export -o results.csv
+```
+
+### import
+
+Read a re-scored CSV in the export format and merge the new grades back into the judgements (no Docker). The input path is required:
+
+```sh
+go run . import -i results.csv
+```
+
+The usual loop is: `export` a CSV, edit the `current_relevance` column, then `import` it. Add `-v`/`--verbose` to any command for extra output.
 
 ## Development
 
