@@ -1,45 +1,15 @@
-package cmd
+package app
 
 import (
 	"context"
 	"fmt"
 	"testing"
 
-	"github.com/ONSdigital/dis-search-test-bed/testset/stream"
 	dpEsClient "github.com/ONSdigital/dp-elasticsearch/v4/client"
 	dpEsClientMock "github.com/ONSdigital/dp-elasticsearch/v4/client/mocks"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 )
-
-const (
-	docNameCPI     = "cpi-latest"
-	docNameGrowth  = "growth-dataset"
-	errConnRefused = "connection refused"
-	errDiskError   = "disk error"
-)
-
-// fakeStore is a [stream.Stream[stream.Item]] implementation for injecting test data.
-type fakeStore struct {
-	items     []stream.Item
-	itemsByID map[string]stream.Item
-	getErr    error
-	listErr   error
-}
-
-func (f fakeStore) Get(_ context.Context, id string) (stream.Item, error) {
-	return f.itemsByID[id], f.getErr
-}
-func (f fakeStore) List(context.Context) ([]stream.Item, error)    { return f.items, f.listErr }
-func (f fakeStore) Put(context.Context, string, stream.Item) error { return nil }
-
-// sampleItems returns a small fixed set of items for the loader tests.
-func sampleItems() []stream.Item {
-	return []stream.Item{
-		{Name: docNameCPI, Body: []byte(`{"title":"CPI"}`)},
-		{Name: docNameGrowth, Body: []byte(`{"title":"Growth"}`)},
-	}
-}
 
 func TestLoadStore(t *testing.T) {
 	cases := []struct {
